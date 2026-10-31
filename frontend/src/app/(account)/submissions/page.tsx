@@ -1,8 +1,51 @@
-export default function Page() {
+import { projectApi } from "../../../lib/project-server";
+import SubmissionCard from "../../components/submission-card";
+import { Pagination } from "../../components/project-card";
+export default async function MySubmissions({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const page = Math.min(
+    100000,
+    Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1),
+  );
+  const { client, options } = await projectApi();
+  let data;
+  try {
+    ({ data } = await client.GET("/api/v1/submissions", {
+      ...options,
+      params: { query: { page, page_size: 10 } },
+    }));
+  } catch {}
   return (
-    <main id="main" className="mx-auto max-w-lg px-6 py-16">
-      <h1 className="text-3xl font-semibold">My Submissions</h1>
-      <p className="mt-6">This feature is not available yet.</p>
+    <main id="main" className="project-shell">
+      <div className="project-heading">
+        <div>
+          <h1>My Submissions</h1>
+          <p>
+            Your images, answers and review status. Submission does not pay
+            credits; moderation and payouts are not enabled yet.
+          </p>
+        </div>
+      </div>
+      {!data ? (
+        <p role="alert">Submissions are unavailable. Please try again.</p>
+      ) : data.items.length ? (
+        data.items.map((s) => <SubmissionCard key={s.id} submission={s} />)
+      ) : (
+        <section className="project-panel">
+          <p>You haven’t submitted any images yet.</p>
+        </section>
+      )}
+      {data && (
+        <Pagination
+          page={page}
+          size={10}
+          total={data.total}
+          href={(n) => "/submissions?page=" + n}
+        />
+      )}
     </main>
   );
 }

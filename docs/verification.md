@@ -1,3 +1,72 @@
+# Phase 2C verification — 31 October 2026
+
+## Implemented boundary
+
+Development-only contributor capture/gallery selection, independent per-image labels, consent/review/progress, idempotent private upload, My Submissions/recovery, removal-request suppression and abandoned-upload cleanup are implemented. Phase 2A/B authentication, published definition history, reservations and append-only ledger safeguards remain. **No moderation decisions, contributor payouts or dataset ZIP downloads are implemented.** Complete architecture, assumptions, file map and manual acceptance are in [phase-2c.md](phase-2c.md).
+
+## Executed checks
+
+| Check | Actual result |
+| --- | --- |
+| Backend full locked suite | **96 passed, 0 skipped**, final run 4.92 seconds on host Python 3.12.13, with TEST_DATABASE_URL pointing to fresh PostgreSQL database `qpqdata_phase1_test_5d3e4acf1a`. |
+| Existing regressions | Original auth/email/eligibility, profile/session/CSRF, welcome grant, ledger, collection versioning, ownership/discovery, reservation/release and concurrency scenarios remain in the full passed suite. |
+| Migration and schema | Normal migration to 0004, insertion of synthetic legacy user/draft/submission rows, then normal upgrade to 0005 passed. All original legacy submission column values were preserved with null new workflow/version markers. PostgreSQL metadata comparison passed. Offline PostgreSQL migration rendering passed. |
+| Local migration | Backed-up development database upgraded normally to **0005 (head)**. `alembic current` returned 0005 and `alembic check` reported **No new upgrade operations detected**. Previous migrations unchanged. |
+| Backend lint/format | Ruff check passed; **39 Python files** passed formatting. |
+| Frontend tests | **46 passed across 7 files**, final run 2.17 seconds. Includes 14 contributor UI cases and 3 raw-upload transport cases, plus previous regressions. |
+| Frontend static checks | Strict TypeScript, ESLint and whole-frontend Prettier passed. `git diff --check` passed. |
+| Production builds | Host Node 22 build passed. Final Docker production build and `compose up --build -d --wait` exited 0; db/backend/frontend/Mailpit/upload-cleaner are healthy and migrate/dev-seed exited 0. Images were built from lockfiles. Only new package is locked Pillow 12.3.0; existing locked package versions were retained. |
+| Live running-stack smoke | Passed through real Next transport, FastAPI, PostgreSQL, Mailpit and private filesystem using new synthetic owner/contributor accounts and a generated image. Details below. |
+| Live HTTP | Backend live/ready and frontend health returned 200/ok. Parsed homepage HTML contained the expected heading and typed API **API: ready**. All 9 referenced JavaScript/CSS resources returned 200; nosniff verified. |
+| Cleanup execution | Normal `upload-cleaner --once` succeeded with **0 expired slots, 0 orphan objects** after the smoke; it preserved the referenced, suppressed synthetic image. Worker heartbeat health passed in Compose. Expiry/orphan deletion and retention of old referenced objects were additionally exercised with isolated test files/rows. The writer/cleanup lock ordering is implemented; a dedicated writer-versus-sweeper concurrency test was not executed. |
+| Data preservation | All **42 original rows remain**. All 42 matched original values immediately after migration and again after the smoke. A later concurrent-use audit found **38 unchanged rows and four authentication-only changes**, detailed below. All 3 original projects, 7 ledger entries, 4 definition versions and 2 reservations remain exactly unchanged; no original row was deleted/reset. |
+| Browser/device acceptance | A native Chrome attempt to open the contributor page encountered user focus changes and was stopped. **No new contributor browser screenshot, physical camera, phone-layout or full browser-console acceptance is marked passed.** Component tests, raw XHR transport tests and real HTTP smoke are separately executed evidence. |
+
+Five non-failing warnings remain in the final backend suite: the upstream Starlette/httpx TestClient deprecation and Alembic legacy path-separator warnings from the staged migration/offline checks. No dependency update was introduced to silence them. The single PostgreSQL test item chains extensive helper scenarios; 96 is the Pytest item count, not a claim of 96 separate new submission integration cases.
+
+## Scenarios executed
+
+- All five question types, independent image answers, strict primitive types, required/optional fields, required false and zero, bounds, duplicate/unknown choices, unknown keys and explicit boolean consent.
+- JPEG/PNG/WebP full decoding and fresh encoding; minimum dimensions, actual format allowlist, corrupt/truncated/unsupported/empty/oversized inputs, animation and pixel limits.
+- Synthetic EXIF GPS/author/orientation stripping and PNG text removal. Rotated dimensions were checked after orientation. Private storage rejects traversal, absolute paths, symlinks and overwrite attempts.
+- Guest/CSRF/Origin rejection, cross-user and collection-owner private access rejection, self-contribution prevention and eligibility revocation despite an existing cookie.
+- Immutable published version/label/answer provenance, idempotent manifest/raw retries, conflicting retry key payloads, duplicate content, storage failure/rollback/recovery and expired uploads.
+- Race for the last collection slot; five active leases per contributor/collection; 20 completed images per contributor/collection; cancellation frees capacity. Paused and closed collections reject new work.
+- Pausing/resuming with pending work; both application and direct-database attempts to close/refund outstanding work fail. No contribution credit entries are posted.
+- Database rejects direct Approved/Rejected transitions, changed completed metadata/hash and submission deletion. Removal requests hide images immediately and are idempotent without deciding moderation or physically erasing retained objects.
+- Orphan sweep removes old unreferenced test objects and preserves live references; expired slots become abandoned with a controlled synthetic test clock, not edits to the development database.
+- Frontend camera/gallery separation, multiple selection, preview removal/replacement/retake and picker cancellation; label independence, required answer failures, consent gates, review, progress/validating/confirmation, failed-image retry and personal removal/recovery states.
+- Actual XHR wrapper sends raw bytes on the fixed private endpoint, reports byte progress, surfaces server/network errors and handles AbortSignal. Same-origin proxy size/Origin/cookie/no-store boundaries are tested.
+
+## Live smoke, backups and retained state
+
+Two new exact `university.test` accounts signed up using real Mailpit emails and browser-bound HTTP cookie jars; no token or cookie was printed. A synthetic owner published **Phase2C Synthetic Kitchen Study**, UUID `47b5d4b7-4276-4368-a173-fb80b3745e63`, requesting 3 images at 1 QC with all five field types. The contributor requirements HTML rendered, a slot was created, bad bytes rejected, a generated 640×480 PNG uploaded and decoded privately with its synthetic GPS-text metadata absent. Required false and zero values survived. Retry returned the same pending record. Guest, other-account and owner image reads failed; self-contribution failed. Pause/resume and duplicate-content rejection/cancellation passed. My Submissions rendered Pending Review. A privacy request hid the image. Closing was refused with pending work. The owner remained at **47 available + 3 reserved QC** and the contributor at **50 QC**, with no payout. Both synthetic sessions were logged out. Captured backend/frontend/Mailpit/worker logs contained no smoke token or secret-link fragment.
+
+Retained new development state: two synthetic accounts and their normal auth/grant records, one published synthetic collection/version/reservation, one hidden pending sanitized image, one cancelled upload record and one removal request. The generated source fixture is outside Git at `/tmp/qpqdata-phase2c-fixtures/synthetic-scene.png`. It contains no real photograph or location. Disposable PostgreSQL databases and isolated temporary test artifacts are retained for inspection; none were dropped/reset by this task.
+
+The last all-column hash audit failed its unchanged-record assertion for four existing auth records. A read-only `pg_restore --data-only --file=-` comparison against the retained archive (captured in memory, no database restore) identified only these changed columns: one User `email_verified_at`; one verification challenge `token_hash`, `requested_at`, `expires_at`, `consumed_at`, `browser_hash`; one session `revoked_at`; one throttle `window_start`. Identity, email, profile, project and ledger values remain unchanged, and every original row remains present. These are consistent with login/logout/reverification activity during concurrent application use; the actor was not inferred. No values, keys or token hashes were printed, and no changes were overwritten to force a green audit. The final result is **not** an unqualified claim that every auth value remained unchanged throughout concurrent use.
+
+A separate custom-format pre-migration backup is at `/tmp/qpqdata-pre-phase2c.dump` and record-hash baseline at `/tmp/qpqdata-pre-phase2c-records.json`, both mode 0600 outside Git. Earlier backups and the existing PostgreSQL volume are retained. A new private `qpqdata_image_data` volume was added; neither volume was removed. Backup creation and record preservation passed; **a restore drill of this backup was not executed**.
+
+## Failures encountered / resolutions
+
+1. Initial contract regression checks detected stale generated OpenAPI while new routes were being added. Export and TypeScript regeneration resolved it; the final full suite verifies equality.
+2. First-pass Ruff reported formatting/import/string-length issues in new scaffolding. They were corrected; all 39 files now pass. One new direct-refund test initially lacked the Project model import (NameError); after correction the full PostgreSQL suite passed, including the real database rejection.
+3. TypeScript found two missing `description` fields in synthetic label fixtures; fixtures were corrected. A later test expectation accidentally included read-only display titles in an initiation payload; it was corrected to assert only client-supplied request fields. Final frontend tests/types/lint all pass.
+4. Several helper commands initially used repository-prefixed paths while already inside frontend, and failed without writing the requested files. They were rerun with correct/absolute paths. No failed invocation is counted as a passed check.
+5. The late all-row unchanged assertion detected the auth changes documented above. A read-only archive column comparison initially failed because pg_restore needed an explicit output target; rerunning with `--file=-` succeeded without restoring/writing a database. It exposed no row values and identified the exact auth-only columns rather than ignoring the failed assertion.
+6. Native Chrome interaction reported that the user changed application focus. Further input was stopped; actual device camera/mobile visual acceptance remains pending instead of being inferred from tests.
+
+## Remaining review
+
+No known functional startup, migration, schema, automated-test or live HTTP pipeline blocker remains. Before acceptance, execute the phone/browser manual steps in [phase-2c.md](phase-2c.md), especially real device capture, gallery permission behaviour, accessibility and network recovery. The native file input may use a picker fallback depending on device/browser. HEIC and images above configured limits require export/resizing before submission.
+
+Production storage remains intentionally disabled until a reviewed private object adapter and deployment controls exist. The removal queue needs an assigned operator/support contact and approved physical/backup-erasure procedure before real public use. Suppression is not a completed erasure decision. Pending images retain owner funding until a later reviewed moderation/reconciliation phase. No next-phase implementation is authorised by these results.
+
+---
+
+Earlier phase/UI verification follows as historical evidence; its revision, feature-boundary and counts describe those earlier executions.
+
 # UI consistency follow-up — 31 October 2026
 
 User-requested visual refinements: shared blue/ink palette across home, logo, accounts and collections; locally hosted Space Grotesk headings/logo and Manrope body text; softer bordered form surfaces, consistent blue focus rings, larger rounded controls and inset select chevrons. SIL Open Font Licence notices are kept beside the font files. No runtime font-CDN requests or new package dependencies were introduced.

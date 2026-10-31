@@ -46,6 +46,8 @@ export default function ProjectActions({ project: p }: { project: Project }) {
       <p>
         Publishing freezes the full definition. Pausing retains the reservation;
         closing permanently releases it. New criteria require a new project.
+        Pending images keep the budget reserved; pause the collection to stop
+        new contributions.
       </p>
       <div className="project-actions">
         {p.status === "draft" && (

@@ -114,7 +114,7 @@ def publication_checks(session: Session, project: Project, definition: ProjectDe
         )
     if definition.closing_date and definition.closing_date < datetime.now(UTC).date():
         raise AuthError("Closing date has passed.", 400)
-    if session.scalar(
+    if project.published_version is None and session.scalar(
         select(func.count()).select_from(Submission).where(Submission.project_id == project.id)
     ):
         raise AuthError("Existing submissions require a separately reviewed transition.", 409)
@@ -168,7 +168,17 @@ def transition(
             raise AuthError("Project funding unavailable.", 409)
     if status == "closed" and reservation and reservation.release_entry_id is None:
         if session.scalar(
-            select(func.count()).select_from(Submission).where(Submission.project_id == project.id)
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.project_id == project.id,
+                (Submission.status.in_(["pending", "approved"]))
+                | (
+                    (Submission.status == "uploading")
+                    & Submission.abandoned_at.is_(None)
+                    & (Submission.upload_expires_at > datetime.now(UTC))
+                ),
+            )
         ):
             raise AuthError(
                 "Existing submissions require a separately reviewed close procedure.", 409

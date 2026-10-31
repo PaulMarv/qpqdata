@@ -18,7 +18,7 @@ from app.models import Base, CreditLedgerEntry, User
 
 
 @pytest.mark.postgres
-def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:
         pytest.skip("Set TEST_DATABASE_URL to a disposable empty PostgreSQL database")
@@ -28,7 +28,51 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
             assert connection.dialect.name == "postgresql"
             assert inspect(connection).get_table_names() == [], "Test database must be empty"
         monkeypatch.setenv("QPQ_DATABASE_URL", url)
-        command.upgrade(Config(str(Path("alembic.ini"))), "head")
+        config = Config(str(Path("alembic.ini")))
+        command.upgrade(config, "0004")
+        # Exercise additive migration over real legacy rows, not just an empty schema.
+        legacy_user, legacy_project, legacy_submission = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO users (id,identity_issuer,identity_subject,email) "
+                    "VALUES (:id,'synthetic:legacy','legacy','legacy@example.test')"
+                ),
+                {"id": legacy_user},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO projects (id,owner_id,name,description) "
+                    "VALUES (:id,:owner,'Legacy draft','Original description')"
+                ),
+                {"id": legacy_project, "owner": legacy_user},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO submissions "
+                    "(id,project_id,contributor_id,object_key,metadata_values) "
+                    "VALUES (:id,:project,:user,'legacy/private-reference','{\"original\": true}')"
+                ),
+                {"id": legacy_submission, "project": legacy_project, "user": legacy_user},
+            )
+            before = dict(
+                connection.execute(
+                    text("SELECT * FROM submissions WHERE id=:id"), {"id": legacy_submission}
+                )
+                .mappings()
+                .one()
+            )
+        command.upgrade(config, "head")
+        with engine.connect() as connection:
+            after = (
+                connection.execute(
+                    text("SELECT * FROM submissions WHERE id=:id"), {"id": legacy_submission}
+                )
+                .mappings()
+                .one()
+            )
+            assert all(after[key] == value for key, value in before.items())
+            assert after["workflow_version"] is None and after["criteria_version"] is None
         with engine.connect() as connection:
             assert set(Base.metadata.tables) <= set(inspect(connection).get_table_names())
             assert compare_metadata(MigrationContext.configure(connection), Base.metadata) == []
@@ -112,6 +156,9 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
         from tests.project_cases import exercise_projects
 
         exercise_projects(engine, monkeypatch)
+        from tests.submission_cases import exercise_submissions
+
+        exercise_submissions(engine, monkeypatch, tmp_path)
         # Tables remain for inspection; use a fresh disposable database for each run.
     finally:
         engine.dispose()

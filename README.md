@@ -1,6 +1,6 @@
-# QPQData — Phase 2B
+# QPQData — Phase 2C
 
-Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Phase 2B adds collection drafts, versioned criteria, public discovery and transactional QC reservations. Image uploads, submissions, payouts and moderation remain unimplemented.
+Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Phase 2B adds collection drafts, versioned criteria, public discovery and transactional QC reservations. Phase 2C adds development-only private image submissions and per-image labelling. Payouts, moderation decisions and dataset downloads remain unimplemented.
 
 ## Start with Docker
 
@@ -85,7 +85,7 @@ Commit both generated files and review changes. Python formatting: `uv run --fro
 - `docs/authentication.md`: verified-email and organisation eligibility design.
 - `docs/verification.md`: actual check results and outstanding verification.
 
-Stop after Phase 2B for review. Contributions, uploads, payouts and transfers remain outside the implemented scope.
+Stop after Phase 2C for review. Moderation decisions, payouts, transfers and dataset ZIP downloads remain outside the implemented scope.
 
 ## Local email verification
 
@@ -104,3 +104,11 @@ Set `QPQ_AUTH_ENABLED=true` in the local development `.env`, then run `docker co
 Browse http://localhost:3000/projects. Eligible signed-in users can create drafts at `/collections/new` and manage them through My Collections. First publication freezes the definition and reserves its image-count × QC-reward budget from available credits. Pause holds the reservation; close releases it exactly once. Migration `0004` is additive and retains existing accounts, ledger records and Mailpit configuration.
 
 [Phase 2B design, file map and complete manual testing steps](docs/phase-2b.md) · [Actual verification results](docs/verification.md)
+
+## Phase 2C image contributions
+
+Enable `QPQ_UPLOADS_ENABLED=true` alongside the existing local development auth/email flags, then rebuild Compose. New migration `0005` preserves earlier records. A separate private `image_data` volume and `upload-cleaner` worker store sanitized JPEG/PNG/WebP objects and reclaim abandoned upload artifacts. Do not delete either named volume. Uploads fail closed in staging/production; no cloud credentials are required or invented.
+
+Use a different eligible account from the collection owner: published collection → Contribute images → requirements → camera/gallery → per-image labels → review/consent → upload → My Submissions. Maximum 5 per batch, 10 MiB/24 MP per image, 20 images per contributor per collection. Pending submissions retain collection funding; no QC payout occurs. Own-image removal requests suppress access immediately and await operator review.
+
+[Phase 2C architecture, file map, limits and complete manual testing instructions](docs/phase-2c.md) · [Actual verification](docs/verification.md)

@@ -118,6 +118,21 @@ class Submission(Record, Base):
     project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
     contributor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     label_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    workflow_version: Mapped[int | None] = mapped_column()
+    criteria_version: Mapped[int | None] = mapped_column()
+    label_key: Mapped[str | None] = mapped_column(String(64))
+    request_key: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    request_hash: Mapped[str | None] = mapped_column(String(64))
+    consent_record: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    upload_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    abandoned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    hidden_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    content_hash: Mapped[str | None] = mapped_column(String(64))
+    image_format: Mapped[str | None] = mapped_column(String(4))
+    width: Mapped[int | None] = mapped_column()
+    height: Mapped[int | None] = mapped_column()
+    byte_size: Mapped[int | None] = mapped_column()
     # Private storage key only; never persist a signed URL.
     object_key: Mapped[str] = mapped_column(Text, unique=True)
     metadata_values: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
@@ -126,7 +141,29 @@ class Submission(Record, Base):
         ForeignKeyConstraint(
             ["label_id", "project_id"], ["label_definitions.id", "label_definitions.project_id"]
         ),
-        CheckConstraint("status = 'pending'"),
+        CheckConstraint(
+            "status IN ('uploading','pending','approved','rejected')", name="ck_submission_status"
+        ),
+        ForeignKeyConstraint(
+            ["project_id", "criteria_version"],
+            ["project_versions.project_id", "project_versions.version"],
+        ),
+        UniqueConstraint("contributor_id", "request_key", name="uq_submission_request"),
+        UniqueConstraint(
+            "project_id", "contributor_id", "content_hash", name="uq_submission_content"
+        ),
+        CheckConstraint(
+            "workflow_version IS NULL OR (workflow_version = 1 AND criteria_version IS NOT NULL "
+            "AND label_key IS NOT NULL AND request_key IS NOT NULL AND request_hash IS NOT NULL "
+            "AND consent_record IS NOT NULL AND upload_expires_at IS NOT NULL)",
+            name="ck_submission_provenance",
+        ),
+        CheckConstraint(
+            "workflow_version IS NULL OR status = 'uploading' OR (content_hash IS NOT NULL "
+            "AND image_format IN ('JPEG','PNG','WEBP') AND width > 0 AND height > 0 "
+            "AND byte_size > 0 AND submitted_at IS NOT NULL)",
+            name="ck_submission_image",
+        ),
     )
 
 
@@ -227,3 +264,14 @@ class ProjectReservation(Record, Base):
         ForeignKey("credit_ledger_entries.id"), unique=True
     )
     __table_args__ = (CheckConstraint("amount > 0", name="ck_reservation_positive"),)
+
+
+class RemovalRequest(Record, Base):
+    __tablename__ = "removal_requests"
+    submission_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("submissions.id"), unique=True)
+    reporter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    reason: Mapped[str] = mapped_column(String(20))
+    details: Mapped[str] = mapped_column(String(1000))
+    __table_args__ = (
+        CheckConstraint("reason IN ('privacy','copyright','other')", name="ck_removal_reason"),
+    )

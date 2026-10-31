@@ -18,7 +18,7 @@ def test_readiness_with_matching_schema() -> None:
     app = create_app()
     app.state.engine = MagicMock()
     connection = app.state.engine.connect.return_value.__enter__.return_value
-    connection.execute.return_value.scalar.return_value = "0004"
+    connection.execute.return_value.scalar.return_value = "0005"
     assert TestClient(app).get("/api/v1/health/ready").status_code == 200
 
 

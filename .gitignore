@@ -13,3 +13,6 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 *.dump
+
+# Private local image objects (never commit contributor photos)
+private-images/

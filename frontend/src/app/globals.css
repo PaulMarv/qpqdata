@@ -538,3 +538,74 @@ button.bg-blue-700:hover {
     scroll-behavior: auto !important;
   }
 }
+
+.capture-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 16px 0;
+}
+.capture-actions label {
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+}
+.capture-input {
+  position: absolute;
+  width: 1px !important;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+.capture-actions label:focus-within {
+  outline: 3px solid var(--brand);
+  outline-offset: 4px;
+}
+.contribution-preview {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: #edf1f8;
+  border-radius: 14px;
+  margin: 16px 0;
+}
+.submission-review {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.submission-review img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.submission-metadata {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  background: var(--canvas);
+  padding: 12px;
+  border-radius: 10px;
+}
+progress {
+  accent-color: var(--brand);
+  width: 100%;
+  height: 12px;
+}
+@media (max-width: 480px) {
+  .capture-actions > .project-button {
+    width: 100%;
+  }
+  .submission-review {
+    flex-direction: column;
+  }
+  .submission-review img {
+    width: 100%;
+    height: 180px;
+  }
+}

@@ -50,7 +50,25 @@ export default async function Detail({
       <section className="project-panel">
         <h2>Contributing</h2>
         {p.closing_date_passed && <p>The closing date has passed.</p>}
-        <p>Image contributions are not available yet.</p>
+        {user?.id === p.owner_id ? (
+          <p>You cannot contribute to your own collection.</p>
+        ) : p.status === "published" &&
+          !p.closing_date_passed &&
+          user &&
+          process.env.QPQ_UPLOADS_ENABLED === "true" ? (
+          <Link
+            className="project-button"
+            href={"/projects/" + p.id + "/contribute"}
+          >
+            Contribute images
+          </Link>
+        ) : (
+          <p>
+            {p.status !== "published"
+              ? "This collection is not accepting new images."
+              : "Read the requirements before contributing."}
+          </p>
+        )}
         {!user && (
           <p>
             <Link className="project-link" href="/login">

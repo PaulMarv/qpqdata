@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -15,6 +16,7 @@ from app.config import Settings
 from app.db import make_engine
 from app.dev_email_api import router as dev_email_router
 from app.project_api import router as project_router
+from app.submission_api import router as submission_router
 
 
 class HealthResponse(BaseModel):
@@ -27,6 +29,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         config = settings or Settings()
         app.state.settings = config
+        app.state.upload_gate = asyncio.Semaphore(4)
         app.state.engine = make_engine(config.database_url.get_secret_value())
         try:
             yield
@@ -37,11 +40,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(dev_email_router)
     app.include_router(auth_router)
     app.include_router(project_router)
+    app.include_router(submission_router)
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
+        if "/submissions" in request.url.path and request.method == "POST":
+            payload = bytearray()
+            try:
+                async with asyncio.timeout(15):
+                    async for chunk in request.stream():
+                        if len(payload) + len(chunk) > 65536:
+                            return JSONResponse(
+                                status_code=413, content={"detail": "Request too large."}
+                            )
+                        payload.extend(chunk)
+                request._body = bytes(payload)
+            except TimeoutError:
+                return JSONResponse(status_code=408, content={"detail": "Request timed out."})
         response = await call_next(request)
-        if "/auth/" in request.url.path or request.url.path.startswith("/api/v1/projects"):
+        if "/auth/" in request.url.path or request.url.path.startswith(
+            ("/api/v1/projects", "/api/v1/submissions")
+        ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = "Cookie"
         return response
@@ -76,7 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = connection.execute(
                     text("SELECT version_num FROM alembic_version")
                 ).scalar()
-                if revision != "0004":
+                if revision != "0005":
                     raise RuntimeError("schema unavailable")
         except (SQLAlchemyError, RuntimeError):
             return JSONResponse(

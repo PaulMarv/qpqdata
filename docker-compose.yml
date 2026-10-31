@@ -46,6 +46,8 @@ services:
       QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
       QPQ_FRONTEND_URL: ${QPQ_FRONTEND_URL:-http://localhost:3000}
       QPQ_AUTH_ENABLED: ${QPQ_AUTH_ENABLED:-false}
+      QPQ_UPLOADS_ENABLED: ${QPQ_UPLOADS_ENABLED:-false}
+      QPQ_STORAGE_ROOT: /app/private-images
       QPQ_SMTP_HOST: mailpit
       QPQ_SMTP_PORT: 1025
       QPQ_VERIFICATION_TTL_SECONDS: ${QPQ_VERIFICATION_TTL_SECONDS:-900}
@@ -53,16 +55,36 @@ services:
       migrate: {condition: service_completed_successfully}
       dev-seed: {condition: service_completed_successfully}
       mailpit: {condition: service_healthy}
+    volumes: ["image_data:/app/private-images"]
+    mem_limit: 1536m
     ports: ["127.0.0.1:8000:8000"]
     healthcheck:
       test: ["CMD", ".venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready', timeout=3)"]
       interval: 10s
       timeout: 5s
       retries: 5
+  upload-cleaner:
+    build: ./backend
+    environment:
+      QPQ_DATABASE_URL: ${QPQ_DATABASE_URL:?Set QPQ_DATABASE_URL in .env}
+      QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
+      QPQ_UPLOADS_ENABLED: ${QPQ_UPLOADS_ENABLED:-false}
+      QPQ_STORAGE_ROOT: /app/private-images
+    volumes: ["image_data:/app/private-images"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: [".venv/bin/python", "-m", "app.upload_cleanup"]
+    restart: "on-failure"
+    healthcheck:
+      test: ["CMD", ".venv/bin/python", "-c", "import pathlib,time; p=pathlib.Path('/tmp/qpq-upload-cleaner-heartbeat'); assert p.exists() and time.time()-p.stat().st_mtime<150"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   frontend:
     build: ./frontend
     environment:
       QPQ_API_INTERNAL_URL: http://backend:8000
+      QPQ_UPLOADS_ENABLED: ${QPQ_UPLOADS_ENABLED:-false}
       QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
       QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
       QPQ_FRONTEND_URL: ${QPQ_FRONTEND_URL:-http://localhost:3000}
@@ -76,3 +98,4 @@ services:
       retries: 5
 volumes:
   postgres_data:
+  image_data:

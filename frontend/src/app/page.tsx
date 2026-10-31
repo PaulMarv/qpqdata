@@ -30,8 +30,8 @@ export default async function Home() {
             useful research.
           </p>
           <p className="mt-8 border-l-2 border-blue-600 pl-4 text-sm leading-relaxed text-slate-600">
-            Create and explore research collections. Image contributions and
-            dataset downloads are not available yet.
+            Create and explore research collections. Contribute original images
+            to published collections. Dataset downloads are not available yet.
           </p>
           <Link
             href="/projects"

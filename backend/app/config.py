@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     smtp_host: str = "mailpit"
     smtp_port: int = 1025
     auth_enabled: bool = False
+    uploads_enabled: bool = False
+    storage_root: str = "/app/private-images"
+
     smtp_starttls: bool = False
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
@@ -24,6 +27,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_development_email(self) -> "Settings":
+        if self.uploads_enabled and self.environment not in {"development", "test"}:
+            raise ValueError("Local image storage is restricted to development/test")
         if self.dev_email_enabled:
             if self.environment != "development":
                 raise ValueError("Development email requires the development environment")
