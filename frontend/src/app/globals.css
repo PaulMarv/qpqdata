@@ -260,7 +260,7 @@ body {
 }
 .project-filters {
   display: grid;
-  gap: 0 16px;
+  gap: 16px;
   align-items: end;
 }
 .project-option {
@@ -608,4 +608,33 @@ progress {
     width: 100%;
     height: 180px;
   }
+}
+
+.project-panel label.dataset-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.6;
+  min-height: 44px;
+}
+.dataset-check input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* Align filter controls by their input edges, independent of label wrapping. */
+.project-filters > label {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.project-filters > .project-button {
+  min-height: 52px;
+  align-self: end;
+}
+.site-header nav[aria-label="Account"] a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  line-height: 1.5;
 }

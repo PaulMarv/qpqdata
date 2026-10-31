@@ -24,7 +24,7 @@ def ready(request: Request) -> HealthResponse | JSONResponse:
         with request.app.state.engine.connect() as connection:
             connection.execute(text("SELECT 1"))
             revision = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
-            if revision != "0005":
+            if revision != "0008":
                 raise RuntimeError("schema unavailable")
     except (SQLAlchemyError, RuntimeError):
         return JSONResponse(

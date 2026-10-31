@@ -988,6 +988,1183 @@
         }
       }
     },
+    "/api/v1/moderation": {
+      "get": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Reviews",
+        "operationId": "listReviews",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "pending",
+                    "approved",
+                    "rejected"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderation/{ident}/decision": {
+      "post": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Decision",
+        "operationId": "decideSubmission",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderation/{ident}/image": {
+      "get": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Image",
+        "operationId": "getReviewImage",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/jpeg": {},
+              "image/png": {},
+              "image/webp": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/moderators": {
+      "post": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Designate",
+        "operationId": "setProjectModerator",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeratorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wallet": {
+      "get": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "History",
+        "operationId": "getWallet",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderation/{ident}/removal-request": {
+      "post": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Restrict",
+        "operationId": "restrictReviewImage",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemovalBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets": {
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Library",
+        "operationId": "listDatasets",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "licence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Licence"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "updated",
+                "newest",
+                "relevance"
+              ],
+              "type": "string",
+              "default": "updated",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100000,
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 12,
+              "title": "Page Size"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}": {
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Detail",
+        "operationId": "getDataset",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/dataset": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Publish",
+        "operationId": "publishDataset",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "For Project",
+        "operationId": "getCollectionDataset",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DatasetView"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Getcollectiondataset"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/withdraw": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Withdraw",
+        "operationId": "withdrawDataset",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{ident}/export-consent": {
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Get Consent",
+        "operationId": "getExportConsent",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Consent",
+        "operationId": "giveExportConsent",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportConsentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{ident}/withdraw-export": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Withdraw Consent",
+        "operationId": "withdrawExportConsent",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/review": {
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Review",
+        "operationId": "reviewDatasetImages",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExportReview"
+                  },
+                  "title": "Response Reviewdatasetimages"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/images/{submission_id}/authorise": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Authorise",
+        "operationId": "authoriseDatasetImage",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          },
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Submission Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoriseImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/versions": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Snapshot",
+        "operationId": "createDatasetVersion",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/versions/{number}/prepare": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Prepare",
+        "operationId": "prepareDatasetDownload",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/versions/{number}/download": {
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Download",
+        "operationId": "downloadDataset",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/reports": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Report",
+        "operationId": "reportDataset",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Reports",
+        "operationId": "listDatasetReports",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DatasetReportView"
+                  },
+                  "title": "Response Listdatasetreports"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/{ident}/images/{submission_id}/withdraw": {
+      "post": {
+        "tags": [
+          "Datasets"
+        ],
+        "summary": "Withdraw Image",
+        "operationId": "withdrawDatasetImage",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          },
+          {
+            "name": "submission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Submission Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "summary": "Live",
@@ -1037,6 +2214,468 @@
   },
   "components": {
     "schemas": {
+      "AuthoriseImageRequest": {
+        "properties": {
+          "consent_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Consent Id"
+          },
+          "distribution_authorised": {
+            "type": "boolean",
+            "const": true,
+            "title": "Distribution Authorised"
+          },
+          "privacy_reviewed": {
+            "type": "boolean",
+            "const": true,
+            "title": "Privacy Reviewed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consent_id",
+          "distribution_authorised",
+          "privacy_reviewed"
+        ],
+        "title": "AuthoriseImageRequest"
+      },
+      "Capacity": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "project_name": {
+            "type": "string",
+            "title": "Project Name"
+          },
+          "requested": {
+            "type": "integer",
+            "title": "Requested"
+          },
+          "uploading": {
+            "type": "integer",
+            "title": "Uploading"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "approved": {
+            "type": "integer",
+            "title": "Approved"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          },
+          "remaining_funded_approvals": {
+            "type": "integer",
+            "title": "Remaining Funded Approvals"
+          },
+          "remaining_reserved_qc": {
+            "type": "integer",
+            "title": "Remaining Reserved Qc"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "project_name",
+          "requested",
+          "uploading",
+          "pending",
+          "approved",
+          "rejected",
+          "remaining_funded_approvals",
+          "remaining_reserved_qc"
+        ],
+        "title": "Capacity"
+      },
+      "ConsentView": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "publication_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Id"
+          },
+          "public_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Public Fields"
+          },
+          "withdrawn": {
+            "type": "boolean",
+            "title": "Withdrawn"
+          },
+          "authorised": {
+            "type": "boolean",
+            "title": "Authorised"
+          },
+          "public_attribution": {
+            "type": "string",
+            "title": "Public Attribution"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "publication_id",
+          "public_fields",
+          "withdrawn",
+          "authorised",
+          "public_attribution"
+        ],
+        "title": "ConsentView"
+      },
+      "DatasetPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetView"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "DatasetPage"
+      },
+      "DatasetReportRequest": {
+        "properties": {
+          "image_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Id"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "privacy",
+              "copyright",
+              "licence",
+              "other"
+            ],
+            "title": "Reason"
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "title": "Details"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason",
+          "details"
+        ],
+        "title": "DatasetReportRequest"
+      },
+      "DatasetReportView": {
+        "properties": {
+          "image_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Id"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "privacy",
+              "copyright",
+              "licence",
+              "other"
+            ],
+            "title": "Reason"
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "title": "Details"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "submission_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submission Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason",
+          "details",
+          "id",
+          "created_at",
+          "submission_id"
+        ],
+        "title": "DatasetReportView"
+      },
+      "DatasetView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "collection_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Collection Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "image_count": {
+            "type": "integer",
+            "title": "Image Count"
+          },
+          "criteria_version": {
+            "type": "integer",
+            "title": "Criteria Version"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/FormDefinition"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/Label"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "licence": {
+            "type": "string",
+            "enum": [
+              "CC0-1.0",
+              "CC-BY-4.0",
+              "CC-BY-SA-4.0"
+            ],
+            "title": "Licence"
+          },
+          "licence_url": {
+            "type": "string",
+            "title": "Licence Url"
+          },
+          "reuse_terms": {
+            "type": "string",
+            "title": "Reuse Terms"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "download_cost": {
+            "type": "integer",
+            "const": 0,
+            "title": "Download Cost",
+            "default": 0
+          },
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/VersionView"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "collection_id",
+          "name",
+          "description",
+          "purpose",
+          "category",
+          "image_count",
+          "criteria_version",
+          "criteria",
+          "labels",
+          "licence",
+          "licence_url",
+          "reuse_terms",
+          "updated_at",
+          "versions"
+        ],
+        "title": "DatasetView"
+      },
+      "DecisionRequest": {
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Outcome"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outcome"
+        ],
+        "title": "DecisionRequest"
+      },
+      "ExportConsentRequest": {
+        "properties": {
+          "publication_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Publication Id"
+          },
+          "agree_public_distribution": {
+            "type": "boolean",
+            "const": true,
+            "title": "Agree Public Distribution"
+          },
+          "public_attribution": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[\\w .'-]*$",
+            "title": "Public Attribution",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "publication_id",
+          "agree_public_distribution"
+        ],
+        "title": "ExportConsentRequest"
+      },
+      "ExportReview": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Submission Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "answers": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Answers"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/ConsentView"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "submission_id",
+          "label",
+          "answers",
+          "consent"
+        ],
+        "title": "ExportReview"
+      },
       "FormDefinition": {
         "properties": {
           "schema_version": {
@@ -1177,6 +2816,26 @@
           "message"
         ],
         "title": "MessageResponse"
+      },
+      "ModeratorRequest": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id",
+          "active"
+        ],
+        "title": "ModeratorRequest"
       },
       "Profile": {
         "properties": {
@@ -1513,6 +3172,41 @@
         ],
         "title": "ProjectView"
       },
+      "PublicationRequest": {
+        "properties": {
+          "criteria_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Criteria Version"
+          },
+          "public_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Public Fields"
+          },
+          "distribution_authorised": {
+            "type": "boolean",
+            "const": true,
+            "title": "Distribution Authorised"
+          },
+          "privacy_reviewed": {
+            "type": "boolean",
+            "const": true,
+            "title": "Privacy Reviewed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "criteria_version",
+          "distribution_authorised",
+          "privacy_reviewed"
+        ],
+        "title": "PublicationRequest"
+      },
       "Question": {
         "properties": {
           "key": {
@@ -1687,6 +3381,105 @@
         ],
         "title": "RemovalBody"
       },
+      "ReviewItem": {
+        "properties": {
+          "submission": {
+            "$ref": "#/components/schemas/SubmissionView"
+          },
+          "contributor_name": {
+            "type": "string",
+            "title": "Contributor Name"
+          },
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "submission",
+          "contributor_name",
+          "reviewer_id",
+          "reviewed_at"
+        ],
+        "title": "ReviewItem"
+      },
+      "ReviewPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/Capacity"
+            },
+            "type": "array",
+            "title": "Collections"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "approved": {
+            "type": "integer",
+            "title": "Approved"
+          },
+          "rejected": {
+            "type": "integer",
+            "title": "Rejected"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "collections",
+          "pending",
+          "approved",
+          "rejected",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "ReviewPage"
+      },
       "SubmissionPage": {
         "properties": {
           "items": {
@@ -1819,9 +3612,29 @@
             ],
             "title": "Status"
           },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
+          "qc_earned": {
+            "type": "integer",
+            "title": "Qc Earned",
+            "default": 0
+          },
           "expired": {
             "type": "boolean",
             "title": "Expired"
+          },
+          "image_deleted": {
+            "type": "boolean",
+            "title": "Image Deleted"
           },
           "hidden": {
             "type": "boolean",
@@ -1908,6 +3721,7 @@
           "consent_record",
           "status",
           "expired",
+          "image_deleted",
           "hidden",
           "width",
           "height",
@@ -2035,6 +3849,182 @@
           "token"
         ],
         "title": "VerifyRequest"
+      },
+      "VersionView": {
+        "properties": {
+          "downloadable": {
+            "type": "boolean",
+            "title": "Downloadable"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "image_count": {
+            "type": "integer",
+            "title": "Image Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "byte_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Byte Size"
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "downloadable",
+          "version",
+          "image_count",
+          "created_at",
+          "revoked",
+          "state",
+          "expires_at",
+          "byte_size",
+          "sha256"
+        ],
+        "title": "VersionView"
+      },
+      "WalletEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "amount": {
+            "type": "integer",
+            "title": "Amount"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "submission_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submission Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "amount",
+          "reason",
+          "project_id",
+          "submission_id"
+        ],
+        "title": "WalletEntry"
+      },
+      "WalletView": {
+        "properties": {
+          "available": {
+            "type": "integer",
+            "title": "Available"
+          },
+          "reserved": {
+            "type": "integer",
+            "title": "Reserved"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WalletEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "available",
+          "reserved",
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "WalletView"
       }
     }
   }

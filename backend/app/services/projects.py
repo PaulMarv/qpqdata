@@ -14,10 +14,11 @@ from app.db.models import (
 )
 from app.schemas.projects import ProjectDefinition, ProjectPage, ProjectView
 from app.services.auth import AuthError, balance
+from app.services.wallet import remaining, spent
 
 
 def owner_project(session: Session, user: User, project_id: UUID) -> Project:
-    session.get(User, user.id, with_for_update=True)
+    session.get(User, user.id, with_for_update={"key_share": True})
     project = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
     if not project or project.owner_id != user.id:
         raise AuthError("Project not found.", 404)
@@ -172,7 +173,7 @@ def transition(
             .select_from(Submission)
             .where(
                 Submission.project_id == project.id,
-                (Submission.status.in_(["pending", "approved"]))
+                (Submission.status == "pending")
                 | (
                     (Submission.status == "uploading")
                     & Submission.abandoned_at.is_(None)
@@ -180,20 +181,20 @@ def transition(
                 ),
             )
         ):
-            raise AuthError(
-                "Existing submissions require a separately reviewed close procedure.", 409
+            raise AuthError("Resolve pending reviews and active uploads before closing.", 409)
+        unspent = reservation.amount - spent(session, project.id)
+        if unspent:
+            release = CreditLedgerEntry(
+                user_id=user.id,
+                project_id=project.id,
+                amount=unspent,
+                reason="collection_release",
+                idempotency_key=f"release:v1:{project.id}",
+                reversal_of_id=reservation.debit_entry_id,
             )
-        release = CreditLedgerEntry(
-            user_id=user.id,
-            project_id=project.id,
-            amount=reservation.amount,
-            reason="collection_release",
-            idempotency_key=f"release:v1:{project.id}",
-            reversal_of_id=reservation.debit_entry_id,
-        )
-        session.add(release)
-        session.flush()
-        reservation.release_entry_id = release.id
+            session.add(release)
+            session.flush()
+            reservation.release_entry_id = release.id
     project.status = status
     session.flush()
     return project
@@ -201,9 +202,6 @@ def transition(
 
 def view(session: Session, project: Project) -> ProjectView:
     definition = definition_for(session, project)
-    reservation = session.scalar(
-        select(ProjectReservation).where(ProjectReservation.project_id == project.id)
-    )
     return ProjectView(
         id=project.id,
         owner_id=project.owner_id,
@@ -211,9 +209,7 @@ def view(session: Session, project: Project) -> ProjectView:
         version=project.current_version,
         published_version=project.published_version,
         definition=definition,
-        reserved_credits=reservation.amount
-        if reservation and not reservation.release_entry_id
-        else 0,
+        reserved_credits=remaining(session, project),
         budget=definition.image_count * definition.reward_per_image,
         created_at=project.created_at,
         closing_date_passed=bool(

@@ -29,11 +29,26 @@ export default async function Collections({
           Create collection
         </Link>
       </div>
+      <p className="mb-6">
+        <Link className="project-link" href="/reviews">
+          Review submissions →
+        </Link>
+      </p>
       <section className="project-panel">
         {!data ? (
           <p role="alert">Collections could not be loaded. Try again.</p>
         ) : data.items.length ? (
-          data.items.map((p) => <ProjectCard key={p.id} project={p} owner />)
+          data.items.map((p) => (
+            <div key={p.id}>
+              <ProjectCard project={p} owner />
+              <Link
+                className="project-link"
+                href={"/collections/" + p.id + "/dataset"}
+              >
+                Dataset publication →
+              </Link>
+            </div>
+          ))
         ) : (
           <p>You haven’t created a collection yet. Start with a draft.</p>
         )}

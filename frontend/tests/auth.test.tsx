@@ -150,3 +150,73 @@ it("closes the dropdown on link selection or focus leaving it", () => {
   screen.getByRole("button", { name: "Outside" }).focus();
   expect(details.open).toBe(false);
 });
+
+it("replaces an expired avatar with guest links on a session check", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
+  );
+  render(
+    <AccountNav
+      user={{ email: "student@university.test", display_name: "Student" }}
+    />,
+  );
+  expect(await screen.findByRole("link", { name: "Log in" })).toBeVisible();
+  expect(screen.queryByLabelText("Open profile menu")).toBeNull();
+});
+it("checks session validity when returning to the tab", async () => {
+  const fetcher = vi.fn().mockResolvedValue(
+    Response.json({
+      email: "student@university.test",
+      display_name: "Refreshed",
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  render(
+    <AccountNav
+      user={{ email: "student@university.test", display_name: "Student" }}
+    />,
+  );
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+  await vi.waitFor(() =>
+    expect(screen.getByLabelText("Open profile menu")).toHaveTextContent("RE"),
+  );
+  fetcher.mockResolvedValue(new Response(null, { status: 401 }));
+  fireEvent.focus(window);
+  expect(await screen.findByRole("link", { name: "Sign up" })).toBeVisible();
+});
+it("keeps the avatar during a temporary session-service failure", async () => {
+  const fetcher = vi.fn().mockRejectedValue(new Error("Offline"));
+  vi.stubGlobal("fetch", fetcher);
+  render(
+    <AccountNav
+      user={{ email: "student@university.test", display_name: "Student" }}
+    />,
+  );
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalled());
+  expect(screen.getByLabelText("Open profile menu")).toBeVisible();
+});
+it("clears the avatar immediately after logout without waiting for server navigation", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockImplementation((url: string) =>
+      Promise.resolve(
+        url.endsWith("/logout")
+          ? Response.json({ status: "ok" })
+          : Response.json({
+              email: "student@university.test",
+              display_name: "Student",
+            }),
+      ),
+    ),
+  );
+  render(
+    <AccountNav
+      user={{ email: "student@university.test", display_name: "Student" }}
+    />,
+  );
+  screen.getByLabelText("Open profile menu").closest("details")!.open = true;
+  fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
+  expect(await screen.findByRole("link", { name: "Log in" })).toBeVisible();
+  expect(screen.queryByLabelText("Open profile menu")).toBeNull();
+});

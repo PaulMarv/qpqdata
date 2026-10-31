@@ -1,14 +1,14 @@
 """Expire abandoned slots and reclaim unreferenced objects; no ledger writes."""
 
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Submission
+from app.db.models import ModerationDecision, RemovalRequest, Submission
 from app.integrations.storage import LocalObjectStore
 
 
@@ -31,6 +31,33 @@ def cleanup(engine, root: str) -> tuple[int, int]:
             row.abandoned_at = now
             expired += 1
     store = LocalObjectStore(root)
+    # Suppression revokes access synchronously; this sweep deletes its bytes.
+    # Rejected bytes expire 30 days after the final decision. Keep all audit rows.
+    with Session(engine) as session, session.begin():
+        purge = session.scalars(
+            select(Submission)
+            .outerjoin(ModerationDecision, ModerationDecision.submission_id == Submission.id)
+            .where(
+                Submission.workflow_version == 1,
+                Submission.image_deleted_at.is_(None),
+                Submission.status.in_(["pending", "approved", "rejected"]),
+                or_(
+                    (Submission.hidden_at.is_not(None))
+                    & Submission.id.in_(
+                        select(RemovalRequest.submission_id).where(
+                            RemovalRequest.purge_after <= now
+                        )
+                    ),
+                    (Submission.status == "rejected")
+                    & (ModerationDecision.created_at < now - timedelta(days=30)),
+                ),
+            )
+            .with_for_update(of=Submission, skip_locked=True)
+        ).all()
+        for row in purge:
+            store.delete(row.object_key)
+            row.image_deleted_at = now
+            removed += 1
     for path in (Path(root) / "objects").glob("*/*"):
         if path.is_symlink() or not path.is_file() or path.stat().st_mtime > time.time() - 3600:
             continue

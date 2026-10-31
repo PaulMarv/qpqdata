@@ -159,7 +159,11 @@ def image(ident: uuid.UUID, request: Request):
     enabled(request)
     with transaction(request) as session:
         row = submissions.own_submission(session, get_user(session, request), ident, True)
-        if row.status != "pending" or row.hidden_at:
+        if (
+            row.status not in {"pending", "approved", "rejected"}
+            or row.hidden_at
+            or row.image_deleted_at
+        ):
             raise HTTPException(404, "Image unavailable.")
         try:
             data = LocalObjectStore(request.app.state.settings.storage_root).read(row.object_key)

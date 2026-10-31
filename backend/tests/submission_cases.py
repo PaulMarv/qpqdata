@@ -286,10 +286,11 @@ def exercise_submissions(engine, monkeypatch, tmp_path):
         os.utime(store.path(orphan), (0, 0))
         with Session(engine) as s:
             referenced = s.get(Submission, uuid.UUID(ident)).object_key
-        os.utime(store.path(referenced), (0, 0))
         _, removed = cleanup(engine, str(tmp_path))
         assert removed == 1 and not store.path(orphan).exists()
-        assert store.path(referenced).exists()  # Even old suppressed references are retained.
+        assert not store.path(
+            referenced
+        ).exists()  # Phase 2D purges suppressed bytes; keeps audit rows.
         assert client.post(url, json=body(), headers=headers).status_code == 201
         # Closing with an exact ledger refund still cannot release pending funding.
         with pytest.raises(DBAPIError), Session(engine) as s, s.begin():

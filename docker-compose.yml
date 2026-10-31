@@ -48,6 +48,8 @@ services:
       QPQ_AUTH_ENABLED: ${QPQ_AUTH_ENABLED:-false}
       QPQ_UPLOADS_ENABLED: ${QPQ_UPLOADS_ENABLED:-false}
       QPQ_STORAGE_ROOT: /app/private-images
+      QPQ_DATASETS_ENABLED: ${QPQ_DATASETS_ENABLED:-false}
+      QPQ_EXPORT_ROOT: /app/private-exports
       QPQ_SMTP_HOST: mailpit
       QPQ_SMTP_PORT: 1025
       QPQ_VERIFICATION_TTL_SECONDS: ${QPQ_VERIFICATION_TTL_SECONDS:-900}
@@ -55,7 +57,7 @@ services:
       migrate: {condition: service_completed_successfully}
       dev-seed: {condition: service_completed_successfully}
       mailpit: {condition: service_healthy}
-    volumes: ["image_data:/app/private-images"]
+    volumes: ["image_data:/app/private-images", "export_data:/app/private-exports:ro"]
     mem_limit: 1536m
     ports: ["127.0.0.1:8000:8000"]
     healthcheck:
@@ -80,6 +82,47 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+  notifications:
+    build: ./backend
+    environment:
+      QPQ_DATABASE_URL: ${QPQ_DATABASE_URL:?Set QPQ_DATABASE_URL in .env}
+      QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
+      QPQ_AUTH_ENABLED: ${QPQ_AUTH_ENABLED:-false}
+      QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
+      QPQ_FRONTEND_URL: ${QPQ_FRONTEND_URL:-http://localhost:3000}
+      QPQ_SMTP_HOST: mailpit
+      QPQ_SMTP_PORT: 1025
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      mailpit: {condition: service_healthy}
+    command: [".venv/bin/python", "-m", "app.jobs.notifications"]
+    restart: "on-failure"
+    healthcheck:
+      test: ["CMD", ".venv/bin/python", "-c", "import pathlib,time; p=pathlib.Path('/tmp/qpq-notifications-heartbeat'); assert p.exists() and time.time()-p.stat().st_mtime<90"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  datasets:
+    build: ./backend
+    environment:
+      QPQ_DATABASE_URL: ${QPQ_DATABASE_URL:?Set QPQ_DATABASE_URL in .env}
+      QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
+      QPQ_UPLOADS_ENABLED: ${QPQ_UPLOADS_ENABLED:-false}
+      QPQ_DATASETS_ENABLED: ${QPQ_DATASETS_ENABLED:-false}
+      QPQ_STORAGE_ROOT: /app/private-images
+      QPQ_EXPORT_ROOT: /app/private-exports
+    volumes: ["image_data:/app/private-images:ro", "export_data:/app/private-exports"]
+    mem_limit: 768m
+    cpus: 1.0
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: [".venv/bin/python", "-m", "app.jobs.datasets"]
+    restart: "on-failure"
+    healthcheck:
+      test: ["CMD", ".venv/bin/python", "-c", "import os,pathlib,time; p=pathlib.Path('/tmp/qpq-datasets-heartbeat'); assert os.environ.get('QPQ_DATASETS_ENABLED') != 'true' or (p.exists() and time.time()-p.stat().st_mtime<300)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   frontend:
     build: ./frontend
     environment:
@@ -99,3 +142,4 @@ services:
 volumes:
   postgres_data:
   image_data:
+  export_data:

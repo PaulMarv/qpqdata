@@ -30,13 +30,16 @@ export default async function RootLayout({
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        <header className="site-header mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-10">
+        <header className="site-header mx-auto flex flex-wrap gap-4 max-w-6xl items-center justify-between px-5 py-5 sm:px-10">
           <Link className="brand text-xl font-bold" href="/">
             QPQ<span className="brand-accent">Data</span>
           </Link>
-          <div className="flex items-center gap-4 sm:gap-8">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-8">
             <Link className="text-sm font-semibold" href="/projects">
               Explore
+            </Link>
+            <Link className="text-sm font-semibold" href="/datasets">
+              Datasets
             </Link>
             <AccountNav user={user} />
           </div>

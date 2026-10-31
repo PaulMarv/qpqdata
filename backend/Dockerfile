@@ -6,7 +6,7 @@ RUN uv sync --frozen --no-dev
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini ./
-RUN useradd --uid 10001 --create-home app && mkdir /app/private-images && chown app:app /app/private-images
+RUN useradd --uid 10001 --create-home app && mkdir /app/private-images /app/private-exports && chown app:app /app/private-images /app/private-exports
 USER app
 EXPOSE 8000
 CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-proxy-headers"]

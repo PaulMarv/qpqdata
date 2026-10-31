@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     auth_enabled: bool = False
     uploads_enabled: bool = False
+    datasets_enabled: bool = False
+    export_root: str = "/app/private-exports"
     storage_root: str = "/app/private-images"
 
     smtp_starttls: bool = False
@@ -27,6 +29,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_development_email(self) -> "Settings":
+        if self.datasets_enabled and not self.uploads_enabled:
+            raise ValueError("Dataset exports require private image storage")
         if self.uploads_enabled and self.environment not in {"development", "test"}:
             raise ValueError("Local image storage is restricted to development/test")
         if self.dev_email_enabled:

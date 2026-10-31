@@ -1,11 +1,10 @@
 import secrets
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import cookie_names, get_user, origin_check, transaction
-from app.db.models import Project, ProjectReservation, User
+from app.db.models import User
 from app.schemas.auth import (
     LinkRequest,
     Message,
@@ -15,6 +14,7 @@ from app.schemas.auth import (
     VerificationResult,
 )
 from app.services import auth
+from app.services.wallet import reserved
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -25,11 +25,7 @@ def profile(session: Session, user: User) -> Profile:
         email=user.email,
         display_name=user.display_name,
         credit_balance=auth.balance(session, user),
-        reserved_credits=session.scalar(
-            select(func.coalesce(func.sum(ProjectReservation.amount), 0))
-            .join(Project, Project.id == ProjectReservation.project_id)
-            .where(Project.owner_id == user.id, ProjectReservation.release_entry_id.is_(None))
-        ),
+        reserved_credits=reserved(session, user),
     )
 
 

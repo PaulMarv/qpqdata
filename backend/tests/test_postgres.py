@@ -95,7 +95,8 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch, tmp_path) 
         for sql in [
             "UPDATE credit_ledger_entries SET amount = 10",
             "DELETE FROM credit_ledger_entries",
-            "TRUNCATE credit_ledger_entries, project_reservations",
+            "TRUNCATE credit_ledger_entries, project_reservations, "
+            "moderation_decisions, notification_outbox",
         ]:
             with pytest.raises(DBAPIError) as rejected, engine.begin() as connection:
                 connection.execute(text(sql))
@@ -159,6 +160,12 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch, tmp_path) 
         from tests.submission_cases import exercise_submissions
 
         exercise_submissions(engine, monkeypatch, tmp_path)
+        from tests.moderation_cases import exercise_moderation
+
+        exercise_moderation(engine, monkeypatch, tmp_path / "moderation")
+        from tests.dataset_cases import exercise_datasets
+
+        exercise_datasets(engine, monkeypatch, tmp_path / "datasets")
         # Tables remain for inspection; use a fresh disposable database for each run.
     finally:
         engine.dispose()

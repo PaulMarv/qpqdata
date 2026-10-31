@@ -133,11 +133,13 @@ class Submission(Record, Base):
     width: Mapped[int | None] = mapped_column()
     height: Mapped[int | None] = mapped_column()
     byte_size: Mapped[int | None] = mapped_column()
+    image_deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Private storage key only; never persist a signed URL.
     object_key: Mapped[str] = mapped_column(Text, unique=True)
     metadata_values: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(20), server_default="pending")
     __table_args__ = (
+        Index("ix_submission_project_status", "project_id", "status"),
         ForeignKeyConstraint(
             ["label_id", "project_id"], ["label_definitions.id", "label_definitions.project_id"]
         ),
@@ -180,14 +182,16 @@ class CreditLedgerEntry(Record, Base):
     __table_args__ = (
         CheckConstraint("amount <> 0"),
         CheckConstraint(
-            "(reason NOT IN ('collection_reservation','collection_release') "
+            "(reason NOT IN ('collection_reservation','collection_release','collection_reward') "
             "AND project_id IS NULL) OR "
             "(reason = 'collection_reservation' AND project_id IS NOT NULL "
             "AND amount < 0 AND reversal_of_id IS NULL "
             "AND idempotency_key = 'reservation:v1:' || CAST(project_id AS VARCHAR)) OR "
             "(reason = 'collection_release' AND project_id IS NOT NULL "
             "AND amount > 0 AND reversal_of_id IS NOT NULL "
-            "AND idempotency_key = 'release:v1:' || CAST(project_id AS VARCHAR))",
+            "AND idempotency_key = 'release:v1:' || CAST(project_id AS VARCHAR)) OR "
+            "(reason = 'collection_reward' AND project_id IS NOT NULL "
+            "AND amount > 0 AND reversal_of_id IS NULL)",
             name="ck_collection_ledger",
         ),
         CheckConstraint(
@@ -270,8 +274,144 @@ class RemovalRequest(Record, Base):
     __tablename__ = "removal_requests"
     submission_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("submissions.id"), unique=True)
     reporter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    purge_after: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reason: Mapped[str] = mapped_column(String(20))
     details: Mapped[str] = mapped_column(String(1000))
     __table_args__ = (
         CheckConstraint("reason IN ('privacy','copyright','other')", name="ck_removal_reason"),
+    )
+
+
+class ProjectModerator(Record, Base):
+    __tablename__ = "project_moderators"
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    granted_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (UniqueConstraint("project_id", "user_id"),)
+
+
+class ModerationDecision(Record, Base):
+    __tablename__ = "moderation_decisions"
+    submission_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("submissions.id"), unique=True)
+    reviewer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    outcome: Mapped[str] = mapped_column(String(20))
+    reason: Mapped[str] = mapped_column(String(1000))
+    reward: Mapped[int] = mapped_column(BigInteger)
+    reward_entry_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("credit_ledger_entries.id"), unique=True
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "(outcome='approved' AND reward>0 AND reward_entry_id IS NOT NULL "
+            "AND reason='') OR (outcome='rejected' AND reward=0 "
+            "AND reward_entry_id IS NULL AND length(trim(reason))>0)",
+            name="ck_moderation_outcome",
+        ),
+    )
+
+
+class NotificationOutbox(Record, Base):
+    __tablename__ = "notification_outbox"
+    decision_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("moderation_decisions.id"), unique=True
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(server_default="0")
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    __table_args__ = (CheckConstraint("attempts >= 0", name="ck_notification_attempts"),)
+
+
+class DatasetPublication(Record, Base):
+    __tablename__ = "dataset_publications"
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"), unique=True)
+    criteria_version: Mapped[int] = mapped_column()
+    authorised_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    public_fields: Mapped[list[str]] = mapped_column(JSON)
+    policy_digest: Mapped[str] = mapped_column(String(64))
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["project_id", "criteria_version"],
+            ["project_versions.project_id", "project_versions.version"],
+        ),
+    )
+
+
+class DatasetConsent(Record, Base):
+    __tablename__ = "dataset_consents"
+    publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dataset_publications.id"))
+    submission_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("submissions.id"), unique=True)
+    contributor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    statement: Mapped[str] = mapped_column(Text)
+    public_attribution: Mapped[str] = mapped_column(String(80))
+    policy_digest: Mapped[str] = mapped_column(String(64))
+    authorised_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    authorised_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint(
+            "(authorised_at IS NULL) = (authorised_by IS NULL)", name="ck_dataset_authorisation"
+        ),
+    )
+
+
+class DatasetVersion(Record, Base):
+    __tablename__ = "dataset_versions"
+    publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dataset_publications.id"))
+    version: Mapped[int] = mapped_column()
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    archive_sha256: Mapped[str | None] = mapped_column(String(64))
+    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("publication_id", "version"),
+        UniqueConstraint("publication_id", "fingerprint"),
+        CheckConstraint("version > 0", name="ck_dataset_version"),
+    )
+
+
+class DatasetMember(Record, Base):
+    __tablename__ = "dataset_members"
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dataset_versions.id"))
+    submission_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("submissions.id"))
+    consent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dataset_consents.id"))
+    image_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    annotations: Mapped[dict[str, Any]] = mapped_column(JSON)
+    __table_args__ = (
+        UniqueConstraint("version_id", "submission_id"),
+        UniqueConstraint("version_id", "image_id"),
+    )
+
+
+class DatasetBuild(Record, Base):
+    __tablename__ = "dataset_builds"
+    version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dataset_versions.id"), unique=True)
+    state: Mapped[str] = mapped_column(String(20), server_default="queued")
+    attempts: Mapped[int] = mapped_column(server_default="0")
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    artifact_key: Mapped[str | None] = mapped_column(Text)
+    byte_size: Mapped[int | None] = mapped_column(BigInteger)
+    sha256: Mapped[str | None] = mapped_column(String(64))
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('queued','building','ready','failed')", name="ck_dataset_build_state"
+        ),
+        CheckConstraint("attempts >= 0", name="ck_dataset_attempts"),
+    )
+
+
+class DatasetReport(Record, Base):
+    __tablename__ = "dataset_reports"
+    publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("dataset_publications.id"))
+    image_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    reason: Mapped[str] = mapped_column(String(20))
+    details: Mapped[str] = mapped_column(String(1000))
+    __table_args__ = (
+        CheckConstraint(
+            "reason IN ('privacy','copyright','licence','other')", name="ck_dataset_report_reason"
+        ),
     )

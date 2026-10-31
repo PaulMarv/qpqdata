@@ -39,7 +39,10 @@ class SubmissionView(Contract):
     answers: dict[str, Any]
     consent_record: dict[str, Any]
     status: Literal["uploading", "pending", "approved", "rejected"]
+    rejection_reason: str | None = None
+    qc_earned: int = 0
     expired: bool
+    image_deleted: bool
     hidden: bool
     width: int | None
     height: int | None

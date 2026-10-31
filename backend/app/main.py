@@ -8,8 +8,10 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.api.routes.auth import router as auth_router
+from app.api.routes.datasets import router as datasets_router
 from app.api.routes.dev_email import router as dev_email_router
 from app.api.routes.health import router as health_router
+from app.api.routes.moderation import router as moderation_router
 from app.api.routes.projects import router as project_router
 from app.api.routes.submissions import router as submission_router
 from app.core.config import Settings
@@ -21,6 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         config = settings or Settings()
         app.state.settings = config
+        app.state.download_gate = asyncio.Semaphore(4)
         app.state.upload_gate = asyncio.Semaphore(4)
         app.state.engine = make_engine(config.database_url.get_secret_value())
         try:
@@ -33,10 +36,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router)
     app.include_router(project_router)
     app.include_router(submission_router)
+    app.include_router(moderation_router)
+    app.include_router(datasets_router)
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
-        if "/submissions" in request.url.path and request.method == "POST":
+        if request.method == "POST" and request.url.path.startswith(
+            ("/api/v1/submissions", "/api/v1/projects", "/api/v1/moderation", "/api/v1/datasets")
+        ):
             payload = bytearray()
             try:
                 async with asyncio.timeout(15):
@@ -51,7 +58,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 return JSONResponse(status_code=408, content={"detail": "Request timed out."})
         response = await call_next(request)
         if "/auth/" in request.url.path or request.url.path.startswith(
-            ("/api/v1/projects", "/api/v1/submissions")
+            (
+                "/api/v1/projects",
+                "/api/v1/submissions",
+                "/api/v1/moderation",
+                "/api/v1/wallet",
+                "/api/v1/datasets",
+            )
         ):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = "Cookie"

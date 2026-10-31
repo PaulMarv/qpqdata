@@ -64,3 +64,15 @@ app/
 Routes translate HTTP requests into service calls and own explicit transaction boundaries. Services enforce domain rules; schemas validate contracts; integrations handle external I/O. SQLAlchemy models remain together in `db/models.py` to preserve their existing relationship/metadata registration without introducing unnecessary repository abstractions. The fixture service remains development-gated; its CLI is `python -m app.cli.dev_seed`. The cleanup worker is `python -m app.jobs.upload_cleanup`. Neither runs on import.
 
 This is a package reorganisation only: public API paths, operation IDs, generated frontend contracts, ledger rules and frozen migration revisions are unchanged. Alembic's environment imports models from their new package; it does not create tables at application startup. The Uvicorn entrypoint remains `app.main:app`.
+
+## Phase 2D moderation and payouts (current behavior)
+
+[Phase 2D](phase-2d.md) supersedes earlier moderation/payout deferrals. Revisions 0006–0007 add immutable moderation decisions, explicit moderator assignments and a durable notification outbox (18 model tables total). Rewards move QC from held collection escrow to contributor ledger balances atomically; remaining reserved QC is derived from original reservations minus rewards. Closing refunds only unspent escrow after pending work resolves. Removal revokes access and retains earned credits; no automatic clawback or public export exists. Revision 0007 adds foreign-key-compatible User locks for concurrent authentication/payouts without rewriting 0006. Existing images and earlier removal requests are grandfathered; see the retention policy and manual two-account checks in the Phase 2D document.
+
+## Phase 2E datasets (current behavior)
+
+[Phase 2E](phase-2e.md) supersedes the previous dataset-export deferral. Six new tables (24 total) separate owner policy, contributor consent, owner distribution review, immutable version/member snapshots, disposable private ZIP caches and public reporting. New revocation triggers stop stale distribution on removal/withdrawal. Private disk generation and chunk-authorised streaming are bounded, deterministic and rate limited. No dataset service posts to the ledger; all downloads are free. No existing image or collection is automatically made public.
+
+### Frontend container packaging
+
+Phase 2E uses Next.js `output: "standalone"`; the final Docker image copies only the traced runtime and `.next/static`, and starts `node server.js` as the existing non-root node user. It does not duplicate the full development dependency/build tree into the runtime layer. This follows [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output). The project currently has no `public/` directory; if one is introduced, its assets must also be copied into the runtime.

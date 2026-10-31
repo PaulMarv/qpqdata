@@ -15,3 +15,7 @@ Account identity remains issuer plus subject. The development email issuer is pr
 Auth is explicitly enabled locally. Production defaults remain disabled and require configured HTTPS/STARTTLS transport, a real sender and reviewed organisation/membership operations before activation. No external credentials are invented. See [development-email.md](development-email.md) for the preserved Mailpit harness and [phase-2a.md](phase-2a.md) for deployment limits.
 
 Security choices were checked against the [OWASP session-management guidance](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) and [OWASP email-verification guidance](https://cheatsheetseries.owasp.org/cheatsheets/Email_Validation_and_Verification_Cheat_Sheet.html).
+
+## Phase 2D authorisation follow-up
+
+Moderation continues to use the same verified/eligible cookie-session dependency and origin/CSRF checks. A collection owner may designate/revoke a verified reviewer UUID; an active designation never bypasses current account eligibility and never permits self-approval. Project locking serialises revocation against decisions. The review APIs expose display names, not contributor email/proof records. Existing sessions, verification challenges and login/last-seen changes are preserved; verification audits must distinguish legitimate concurrent authentication updates from immutable project/ledger changes. See [Phase 2D](phase-2d.md).

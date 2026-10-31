@@ -1,6 +1,6 @@
-# QPQData — Phase 2C
+# QPQData — Phase 2E
 
-Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Phase 2B adds collection drafts, versioned criteria, public discovery and transactional QC reservations. Phase 2C adds development-only private image submissions and per-image labelling. Payouts, moderation decisions and dataset downloads remain unimplemented.
+Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Phase 2B adds collection drafts, versioned criteria, public discovery and transactional QC reservations. Phase 2C adds development-only private image submissions and per-image labelling. Phase 2D adds owner/designated review, atomic reservation-funded rewards, rejection reasons, private removal and wallet history. Phase 2E adds explicitly authorised, versioned public datasets and free ZIP downloads.
 
 ## Start with Docker
 
@@ -85,7 +85,7 @@ Commit both generated files and review changes. Python formatting: `uv run --fro
 - `docs/authentication.md`: verified-email and organisation eligibility design.
 - `docs/verification.md`: actual check results and outstanding verification.
 
-Stop after Phase 2C for review. Moderation decisions, payouts, transfers and dataset ZIP downloads remain outside the implemented scope.
+Stop after Phase 2E for review. Payments, credit purchases, general transfers and additional marketplace features remain outside scope.
 
 ## Local email verification
 
@@ -109,6 +109,14 @@ Browse http://localhost:3000/projects. Eligible signed-in users can create draft
 
 Enable `QPQ_UPLOADS_ENABLED=true` alongside the existing local development auth/email flags, then rebuild Compose. New migration `0005` preserves earlier records. A separate private `image_data` volume and `upload-cleaner` worker store sanitized JPEG/PNG/WebP objects and reclaim abandoned upload artifacts. Do not delete either named volume. Uploads fail closed in staging/production; no cloud credentials are required or invented.
 
-Use a different eligible account from the collection owner: published collection → Contribute images → requirements → camera/gallery → per-image labels → review/consent → upload → My Submissions. Maximum 5 per batch, 10 MiB/24 MP per image, 20 images per contributor per collection. Pending submissions retain collection funding; no QC payout occurs. Own-image removal requests suppress access immediately and await operator review.
+Use a different eligible account from the collection owner: published collection → Contribute images → requirements → camera/gallery → per-image labels → review/consent → upload → My Submissions. Maximum 5 per batch, 10 MiB/24 MP per image, 20 images per contributor per collection. Pending submissions retain collection funding and earn no QC until approved. Phase 2D approval pays the configured reward from escrow. Own-image removal requests suppress access immediately; the documented retention policy governs byte deletion.
 
 [Phase 2C architecture, file map, limits and complete manual testing instructions](docs/phase-2c.md) · [Actual verification](docs/verification.md)
+
+### Phase 2D moderation
+
+Collection owners can use **My Collections → Review submissions** (`/reviews`) to review private images. Approved rewards consume reserved QC atomically; contributors see outcomes in My Submissions and reward history in QPQ Wallet. See [the Phase 2D specification and complete two-account testing steps](docs/phase-2d.md). Compose now includes an outcome-notification worker; keep Mailpit available at http://localhost:8025. No dataset exports or public downloads are enabled.
+
+### Phase 2E datasets
+
+Enable `QPQ_DATASETS_ENABLED=true` locally and rebuild Compose. Existing approvals remain private: owner publication, contributor per-image export opt-in and owner per-image export authorisation are required. Use **My Collections → Dataset publication**, then browse `/datasets`. Downloads are always **0 QC**. A separate private `export_data` volume/worker holds expiring ZIPs; never delete existing database/image volumes. See [the complete architecture, limits and manual test steps](docs/phase-2e.md).

@@ -1,3 +1,82 @@
+# Navigation and Explore UI follow-up — 31 October 2026
+
+- Guest Log in/Sign up links now share centred alignment, spacing and 44px minimum touch targets with the header navigation.
+- Explore filter labels no longer add a bottom margin that lifts their inputs above Search. Controls align at their bottom edges, with consistent button height and vertical spacing on narrow screens. Shared dataset filters receive the same correction.
+- Account navigation rechecks the existing no-store session endpoint on navigation, tab focus/visibility and every 30 seconds while visible. Confirmed expiry/revocation replaces the avatar with guest links; transient network failures preserve the last known state. Successful logout clears the avatar immediately. Responses that began before logout cannot restore stale authenticated navigation. No tokens are stored in browser storage.
+- Added four regression tests: expired session, tab return, temporary network failure and immediate logout. Final frontend suite: **67 passed across 9 files**. The initial focus test fired before its first request completed; it now waits for the returned account to render. ESLint also identified effect-based prop copying; session state now derives from the current server prop without that extra render. Final ESLint, strict TypeScript, Prettier and production Docker build passed. The frontend was rebuilt/restarted; Explore and frontend health returned HTTP 200. Backend/database code was unchanged, so backend tests were not repeated for this UI-only follow-up.
+
+Manual checks: open `/projects` as a guest at desktop and phone widths; compare navigation alignment and the Search button against neighbouring inputs. Sign in, sign out and confirm guest links appear immediately. Sign out in another tab, return here and confirm the avatar disappears without a reload. For server-side revocation/expiry while remaining on the page, allow up to 30 seconds for the next visible-tab check. Temporary API unavailability should not falsely change the account state. Browser visual inspection was unavailable through the connected Chrome tool in this session.
+
+---
+
+# Phase 2E verification — 31 October 2026
+
+Phase 2E implementation and automated verification are complete; browser acceptance remains for review. See [phase-2e.md](phase-2e.md) for architecture, API/file inventory, publication policy and the complete two-account manual test steps. Historical results below are retained.
+
+| Check | Actual executed result |
+| --- | --- |
+| Backend/PostgreSQL | **124 passed**, no skipped tests, five existing Starlette/httpx and Alembic deprecation warnings. Fresh disposable PostgreSQL 17 database; application database was not used for test fixtures. |
+| Dataset integration | PostgreSQL tests cover explicit publication/consent/owner gates, excluded pending/rejected/restricted images, licensing, private access, ZIP integrity, manifest/CSV privacy, immutable versions, deterministic regeneration, missing-cache recovery, concurrent snapshots/workers, removal during generation/streaming, limits, retries, reports, expiry and unchanged ledger rows during downloads. Limit branches use bounded synthetic fixtures, not a full 512-MiB load benchmark. |
+| Backend quality | Ruff lint passed; **75 Python files** passed formatting. OpenAPI contract and schema/migration tests passed within the suite. |
+| Frontend | **63 tests passed across 9 files**. ESLint, strict TypeScript and Prettier passed using the Node 22 Docker build environment. Production Next.js standalone build and runtime-image packaging passed. |
+| Compose | Configuration validation and build/start/wait passed after recovery. Database, backend, frontend, Mailpit, upload-cleaner, notifications and datasets worker are healthy. Migration and development-organisation fixture services exited 0. |
+| Database | Running application reports **0008 (head)**; `alembic check`: **No new upgrade operations detected**. Migration creates publication/export records only when explicitly requested; existing approvals remain private. |
+| HTTP/rendering | Backend readiness and frontend health HTTP 200; homepage and dataset library SSR HTTP 200. Public dataset API HTTP 200 with an empty library. This is a successful connectivity/empty-state check, not a live two-account export acceptance test. |
+| Record preservation | A fresh pre-migration custom-format backup was created after PostgreSQL recovery. Read-only COPY-data comparison confirms all **103 original business/operational rows** remain byte-identical. The Alembic row changed from 0007 to 0008; public HTTP checks added two rate-limit rows. No original business/ledger row was changed or removed. Existing PostgreSQL/image volumes were retained. |
+| Backup | Private, Git-ignored `pre-phase2e-resumed.dump` in the repository root, mode 0600; SHA-256 `bfbe5993b4cbd547061f8ede1d400bb5c193d747896effe9ec83b2440cfca4d0`. PostgreSQL archive catalog and data extraction succeeded. No restore drill was performed. |
+
+## Failures, recovery and limits
+
+- The earlier Docker build failed with **no space left on device** and Docker stopped responding. Frontend runtime packaging now copies Next.js standalone output rather than the entire build/dependency tree; its rebuilt image succeeds after Docker restart. No Docker prune, database reset or volume deletion was used.
+- After restart, PostgreSQL refused a zero-filled 94-byte `postmaster.pid`, then a corrupted ephemeral socket lock. Confirmed no running container mounted the database volume; preserved the former as `postmaster.pid.pre-recovery-20261031`, and recreated only the database container to clear its writable-layer socket lock. PostgreSQL completed normal WAL crash recovery and accepted connections. No database files, WAL or credit records were repaired manually.
+- Previous `/tmp` verification helpers and pre-crash backup/hash baselines were no longer present after restart. A new backup was taken before migration. Consequently, the post-recovery-to-post-migration row comparison is verified, but the earlier pre-crash row/image hash comparison cannot be repeated. Do not interpret retained volumes as proof that every original image byte survived the Docker failure.
+- The first resumed test invocation failed because its temporary helper was missing; recreated the helper and ran the complete suite successfully. The first preservation comparison correctly reported the Alembic revision change and two added rate-limit records; checking all original rows separately passed. No integrity checks were weakened.
+- Actual browser two-account publication/opt-in/download acceptance, mobile appearance, natural 15-minute expiry and a live multi-process HTTP export/removal exercise have **not** been executed on this resumed stack. Automated PostgreSQL/API/UI tests cover those branches; they are not claimed as manual browser results. Follow the manual instructions before acceptance.
+- Production storage/deployment is not configured. Local adapters remain development-gated. Previously downloaded copies cannot be remotely revoked. Downloads cost **0 QC**, and no download feature posts ledger entries.
+
+Stop after Phase 2E for review. No payments, credit purchases or marketplace features were added.
+
+---
+
+# Phase 2D verification — 31 October 2026
+
+Phase 2D is implemented and stopped for review. The [implementation specification and complete two-account manual instructions](phase-2d.md) document policies, APIs and files. Earlier phase results below remain historical evidence.
+
+| Check | Executed result |
+| --- | --- |
+| Backend suite with real PostgreSQL | **103 passed**, including the opt-in PostgreSQL migration/ledger test and its authentication, collection, submission and new moderation integration scenarios. Final disposable target: `qpqdata_phase1_test_40211203f6`. Five existing Starlette/httpx and Alembic configuration deprecation warnings remain. |
+| Migrations and integrity | Normal staged migration from 0004 legacy fixtures through 0005, 0006 and **0007** passed; original legacy column values were preserved. ORM/schema comparison and offline PostgreSQL migration rendering passed. Applied 0006 was not rewritten for the later lock correction; a separate 0007 revision carries it. Revisions 0001–0005 have no diff. |
+| Authentication/payout concurrency | A synchronised PostgreSQL test forces a recipient authentication transaction to hold its User lock and wait for the reviewer's eligibility lock. Payout and authentication both finish under a five-second lock timeout using FK-compatible `FOR NO KEY UPDATE` User locks. Existing welcome-grant, session, eligibility, nonnegative-wallet and concurrent debit tests also pass. |
+| Moderation/credits | Owner/designated permission, cross-user and self-review denial, CSRF, approval, required rejection reason, final decision conflicts, duplicate/repeated approvals, synchronised same-image and distinct-image approvals, approval versus close, post-posting rollback, missing/corrupt images, criteria revalidation, forged reward amounts/recipients, orphan rewards, append-only history, insufficient-reservation service branch, residual refunds and exhausted escrow all pass. QC conservation across wallets plus held reservations is asserted. |
+| Removal/notifications | Contributor and reviewer suppression, immediate access revocation, retained approved QC, actual object purge for new suppression, preservation of rejection bytes before 30 days, durable outbox, SMTP failure/backoff and successful retry without duplicate payouts pass. Natural elapsed 30-day retention acceptance was not manually observed; no immutable audit timestamps were altered to manufacture it. |
+| Backend lint/format | Ruff lint passed; **65 Python files** passed formatting. `git diff --check` passed. |
+| Frontend tests | **53 passed across 8 files**, including review reason validation, approval/error/retry UI, hidden images, contributor reasons/QC and same-origin proxy permissions/cookie filtering. Existing auth, collection and upload tests remain passing. |
+| Frontend checks/build | ESLint, strict TypeScript and Prettier passed. Next.js production build passed on host and in Docker; the final Docker build includes `/reviews`, private review transport and updated wallet/submission UI. Frontend contracts were regenerated and match FastAPI's OpenAPI in the backend contract test. |
+| Local services | Docker Compose validation/build/start/wait passed. **Database, backend, frontend, Mailpit, upload-cleaner and notifications are healthy**. Migrate and development fixture commands exited **0**. Existing database/image volumes remain in place. |
+| Running schema | Application database reports **0007 (head)**. Running-container `alembic check` reports **No new upgrade operations detected**. |
+| Connectivity/rendering | Backend live/ready and frontend health returned HTTP 200 after the final deployment. Homepage returned HTTP 200 with server-rendered API readiness; all nine referenced JS/CSS assets returned HTTP 200. Authenticated review, wallet and submission pages also rendered through the actual frontend transport in the smoke. |
+| Live two-account workflow | Two fresh synthetic `.test` accounts used the working Mailpit/browser-bound link flow. Published 3 images × 2 QC: owner 44 available + 6 reserved. Two private uploads were reviewed while paused: approval paid 2 QC once despite retry; rejection paid zero and exposed its reason only after authentication. Closure returned only 4 unspent QC, leaving owner 48 and contributor 52. Removal revoked both image routes and retained QC. A follow-up on running 0007 reused those same accounts for a one-image collection: one 2-QC reward, duplicate retry unchanged, exhausted closure with no zero/refund entry and authorised reviewer removal. Across the two smoke collections: **2 reward entries totalling 4 QC**, 1 rejected submission and **3 SMTP outcome notices successfully delivered to Mailpit**. Both newly suppressed smoke images were purged with their audit rows retained. |
+| Preservation | Private pg_dump and column/image hash baselines were created before migration. Immediately after 0006 and again after 0007 plus live tests: **all 63 preexisting rows retain every original column value, including auth fields and all ledger/project records; the one preexisting image retains identical bytes**. No original row/volume/image was removed or reset. Newly created smoke rows remain for review. The pre-2D suppressed image is grandfathered, not retroactively purged. |
+
+## Failures encountered and corrections
+
+- The first PostgreSQL run reached a new dependent-table foreign-key restriction before the legacy ledger TRUNCATE trigger assertion. The test now includes the new audit/outbox tables in the TRUNCATE statement and still requires the exact append-only trigger SQLSTATE; no guard was disabled.
+- The old cleanup test assumed suppressed bytes were retained indefinitely. Its timestamp-touch assertion failed after the new policy had already purged the synthetic image. The assertions now check deletion plus preserved audit records. Existing removal requests are explicitly grandfathered with null purge schedules, preserving preexisting files.
+- Synthetic fixtures initially used an unsupported licence literal, the failure-injection stub did not accept a keyword argument, and one permission test retained the contributor cookie before an owner-only call. Those fixtures/stubs/session switches were corrected; the complete PostgreSQL suite was rerun successfully.
+- TypeScript initially found a missing newly required response field in an old fixture; a later invocation preceded regenerated types. Both were corrected by updating fixtures and regenerating the contract. Running standalone TypeScript concurrently with `next build` also raced with `.next/types` regeneration; rerunning after the build passed. Final production builds passed.
+- The first live smoke stopped at a raw HTML substring assertion because React placed comment separators between the QC number and its label. A proper visible-text parser passed. The same two accounts and same collection were reauthenticated and the smoke resumed through closure/removal; no test account or credit balance was reset.
+- Final lock analysis identified an implicit reward FK/User-lock deadlock risk. Added revision 0007 and the synchronised authentication/payout regression rather than changing applied 0006. Full backend tests, local migration, metadata check, services and a new payout on the running final revision passed afterward.
+
+## Recovery baseline and limits
+
+The pre-change custom-format database archive is `/tmp/qpqdata-pre-phase2d.dump`, mode 0600, SHA-256 `53ddd4ba7152c5c77813369919024173ae15d0fe53cf89c85c74d331ad84ecf5`. Column/image hash baselines are private files alongside it; no secret, token, email payload or image was printed or committed. Archive creation/checksum were verified; **a restore drill was not run**. Earlier recovery artifacts remain untouched.
+
+The earlier documented concurrent authentication changes were inspected before implementation and were never reverted. The new baseline measures the current records rather than asserting that old authentication timestamps must revert to a prior phase. No original baseline column changed in this run; legitimate future login/last-seen activity may change auth operational fields and must be reported separately from ledger/project integrity.
+
+No local functional blocker remains. **Native-browser visual/hydration, real phone layout and manual human originality/suitability review were not executed**; component and HTTP checks do not substitute for those acceptance checks. Production private storage, restricted runtime database roles, real organisational review and full lawful retention/backup erasure remain deployment gates. No public downloads, dataset ZIPs, general transfers or automatic clawbacks are implemented.
+
+---
+
 # Phase 2C verification — 31 October 2026
 
 ## Implemented boundary

@@ -1,6 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- authenticated private images must not use a public optimiser */
 import Link from "next/link";
+import ExportConsentForm from "./export-consent";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -79,13 +80,15 @@ export default function SubmissionCard({
       <p className="project-id">
         Submission {s.id} · Definition v{s.criteria_version}
       </p>
-      {s.status === "pending" && !s.hidden && (
-        <img
-          className="contribution-preview"
-          src={"/api/submissions/" + s.id + "/image"}
-          alt={"Your submission to " + s.project_name}
-        />
-      )}
+      {["pending", "approved", "rejected"].includes(s.status) &&
+        !s.hidden &&
+        !s.image_deleted && (
+          <img
+            className="contribution-preview"
+            src={"/api/submissions/" + s.id + "/image"}
+            alt={"Your submission to " + s.project_name}
+          />
+        )}
       <p>
         Label: {s.label_name} ·{" "}
         {new Date(s.created_at).toLocaleDateString("en-GB", {
@@ -97,6 +100,8 @@ export default function SubmissionCard({
           ? `${s.width} × ${s.height} pixels · ${s.image_format}`
           : "Upload not completed"}
       </p>
+      {s.status === "approved" && <p>{s.qc_earned} QC earned</p>}
+      {s.rejection_reason && <p>Rejection reason: {s.rejection_reason}</p>}
       <details>
         <summary>Submitted answers and consent</summary>
         <dl className="project-inset">
@@ -126,6 +131,12 @@ export default function SubmissionCard({
           {s.consent_record.reuse_terms as string}
         </p>
       </details>
+      {s.image_deleted && (
+        <p>
+          Image deleted under the retention policy. Your decision, consent and
+          credit history are retained.
+        </p>
+      )}
       {s.hidden ? (
         <p>Image access hidden · removal request awaiting review.</p>
       ) : s.status === "uploading" && !s.expired ? (
@@ -157,7 +168,7 @@ export default function SubmissionCard({
           )}
         </div>
       ) : (
-        s.status === "pending" && (
+        ["pending", "approved", "rejected"].includes(s.status) && (
           <button
             className="project-link"
             disabled={busy}
@@ -197,6 +208,9 @@ export default function SubmissionCard({
           </button>
         </form>
       )}
+      {["pending", "approved"].includes(s.status) &&
+        !s.hidden &&
+        !s.image_deleted && <ExportConsentForm id={s.id} />}
       <p role="status">{message}</p>
     </article>
   );

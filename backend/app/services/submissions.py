@@ -8,6 +8,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    ModerationDecision,
     Project,
     ProjectReservation,
     ProjectVersion,
@@ -186,6 +187,9 @@ def view(session: Session, row: Submission) -> SubmissionView:
         )
     )
     definition = ProjectDefinition.model_validate(version.definition)
+    decision = session.scalar(
+        select(ModerationDecision).where(ModerationDecision.submission_id == row.id)
+    )
     return SubmissionView(
         id=row.id,
         project_id=row.project_id,
@@ -197,11 +201,14 @@ def view(session: Session, row: Submission) -> SubmissionView:
         answers=row.metadata_values,
         consent_record=row.consent_record,
         status=row.status,
+        rejection_reason=decision.reason if decision and decision.outcome == "rejected" else None,
+        qc_earned=decision.reward if decision else 0,
         expired=bool(
             row.abandoned_at
             or (row.status == "uploading" and row.upload_expires_at <= datetime.now(UTC))
         ),
         hidden=bool(row.hidden_at),
+        image_deleted=bool(row.image_deleted_at),
         width=row.width,
         height=row.height,
         image_format=row.image_format,
@@ -216,11 +223,21 @@ def suppress(
     session: Session, user: User, ident: uuid.UUID, reason: str, details: str
 ) -> Submission:
     row = own_submission(session, user, ident, True)
+    return suppress_row(session, user, row, reason, details)
+
+
+def suppress_row(
+    session: Session, user: User, row: Submission, reason: str, details: str
+) -> Submission:
     if not row.hidden_at:
         row.hidden_at = datetime.now(UTC)
         session.add(
             RemovalRequest(
-                submission_id=row.id, reporter_id=user.id, reason=reason, details=details
+                submission_id=row.id,
+                reporter_id=user.id,
+                reason=reason,
+                details=details,
+                purge_after=datetime.now(UTC),
             )
         )
         session.flush()

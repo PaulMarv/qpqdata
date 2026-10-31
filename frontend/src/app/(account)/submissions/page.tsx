@@ -24,8 +24,8 @@ export default async function MySubmissions({
         <div>
           <h1>My Submissions</h1>
           <p>
-            Your images, answers and review status. Submission does not pay
-            credits; moderation and payouts are not enabled yet.
+            Your images, answers, review decisions and earned QC. Approved
+            images earn the collection’s configured reward.
           </p>
         </div>
       </div>

@@ -144,7 +144,7 @@ def verify(session: Session, settings: Settings, token: str) -> None:
     user = session.scalar(
         select(User)
         .where(User.identity_issuer == DEV_ISSUER, User.identity_subject == challenge.email)
-        .with_for_update()
+        .with_for_update(key_share=True)
     )
     if user is None:
         user = User(
