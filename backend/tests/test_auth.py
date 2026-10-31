@@ -2,9 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.auth import normalise_email
-from app.config import Settings
+from app.core.config import Settings
 from app.main import create_app
+from app.services.auth import normalise_email
 
 
 def test_real_email_parser_and_idna() -> None:
@@ -16,7 +16,7 @@ def test_real_email_parser_and_idna() -> None:
     "address", ["x@@example.org", "x\r\nBcc: a@example.org", "x@", "x@unknown"]
 )
 def test_invalid_email(address) -> None:
-    from app.auth import AuthError
+    from app.services.auth import AuthError
 
     with pytest.raises(AuthError):
         normalise_email(address)
@@ -44,12 +44,12 @@ def test_auth_disabled_by_default() -> None:
 def test_legacy_activation_error_is_sanitised(monkeypatch) -> None:
     from unittest.mock import MagicMock
 
-    from app.auth import AuthError
+    from app.services.auth import AuthError
 
     def unavailable(*args):
         raise AuthError("Internal grant error", 503)
 
-    monkeypatch.setattr("app.dev_email_api.verify", unavailable)
+    monkeypatch.setattr("app.api.routes.dev_email.verify", unavailable)
     app = create_app()
     app.state.settings = Settings(
         database_url="postgresql+psycopg://unused",

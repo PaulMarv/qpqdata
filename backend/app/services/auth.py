@@ -9,10 +9,10 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.config import Settings
-from app.dev_email import deliver_message
-from app.eligibility import domain_organisation, eligible, issuer_for
-from app.models import AuthSession, AuthThrottle, CreditLedgerEntry, DevEmailVerification, User
+from app.core.config import Settings
+from app.db.models import AuthSession, AuthThrottle, CreditLedgerEntry, DevEmailVerification, User
+from app.integrations.email import deliver_message
+from app.services.eligibility import domain_organisation, eligible, issuer_for
 
 
 class AuthError(Exception):

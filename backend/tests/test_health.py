@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
-from app.config import Settings
+from app.core.config import Settings
 from app.main import create_app
 
 

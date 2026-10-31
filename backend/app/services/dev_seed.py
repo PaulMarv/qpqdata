@@ -5,9 +5,8 @@ from datetime import UTC, datetime
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from app.config import Settings
-from app.db import make_engine
-from app.models import Organisation, OrganisationDomain
+from app.core.config import Settings
+from app.db.models import Organisation, OrganisationDomain
 
 TEST_DOMAIN = "university.test"
 TEST_ORGANISATION = "QPQData Test University"
@@ -47,18 +46,3 @@ def seed(session: Session, settings: Settings) -> None:
             review_reference=FIXTURE_REFERENCE,
         )
     )
-
-
-def main() -> None:
-    settings = Settings()
-    require_development(settings)
-    engine = make_engine(settings.database_url.get_secret_value())
-    try:
-        with Session(engine) as session, session.begin():
-            seed(session, settings)
-    finally:
-        engine.dispose()
-
-
-if __name__ == "__main__":
-    main()

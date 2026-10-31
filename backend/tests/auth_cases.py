@@ -7,13 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app import auth
-from app.config import Settings
-from app.dev_email import DEV_ISSUER, VerificationError
-from app.dev_email import verify as legacy_verify
-from app.eligibility import eligible
-from app.main import create_app
-from app.models import (
+from app.core.config import Settings
+from app.db.models import (
     AuthSession,
     CreditLedgerEntry,
     DevEmailVerification,
@@ -22,6 +17,11 @@ from app.models import (
     OrganisationMembership,
     User,
 )
+from app.main import create_app
+from app.services import auth
+from app.services.dev_email import DEV_ISSUER, VerificationError
+from app.services.dev_email import verify as legacy_verify
+from app.services.eligibility import eligible
 
 
 def exercise_authentication(engine, monkeypatch) -> None:
@@ -33,7 +33,7 @@ def exercise_authentication(engine, monkeypatch) -> None:
     )
     sent = []
     monkeypatch.setattr(
-        "app.auth.send_link", lambda config, email, token: sent.append((email, token))
+        "app.services.auth.send_link", lambda config, email, token: sent.append((email, token))
     )
 
     def request(email, intent="signup", browser="b" * 43):
@@ -154,7 +154,7 @@ def exercise_authentication(engine, monkeypatch) -> None:
     def fail(*args):
         raise auth.AuthError("Synthetic grant failure", 503)
 
-    monkeypatch.setattr("app.auth.grant_welcome", fail)
+    monkeypatch.setattr("app.services.auth.grant_welcome", fail)
     with pytest.raises(auth.AuthError):
         redeem(failing)
     with Session(engine) as session:
@@ -170,7 +170,7 @@ def exercise_authentication(engine, monkeypatch) -> None:
             ).consumed_at
             is None
         )
-    monkeypatch.setattr("app.auth.grant_welcome", original)
+    monkeypatch.setattr("app.services.auth.grant_welcome", original)
     rollback_id, _, _ = redeem(failing)
     assert welcome_count(rollback_id) == 1
 
@@ -331,10 +331,10 @@ def exercise_authentication(engine, monkeypatch) -> None:
     def fail_session(**kwargs):
         raise auth.AuthError("Synthetic session failure", 503)
 
-    monkeypatch.setattr("app.auth.AuthSession", fail_session)
+    monkeypatch.setattr("app.services.auth.AuthSession", fail_session)
     with pytest.raises(auth.AuthError):
         redeem(after_grant)
-    monkeypatch.setattr("app.auth.AuthSession", original_session_class)
+    monkeypatch.setattr("app.services.auth.AuthSession", original_session_class)
     with Session(engine) as session:
         assert (
             session.scalar(select(User).where(User.email == "auth-after-grant@university.test"))

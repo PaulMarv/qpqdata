@@ -6,19 +6,19 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from sqlalchemy import func, select
 from starlette.concurrency import run_in_threadpool
 
-from app import submissions
-from app.auth import AuthError, throttle
-from app.auth_api import get_user, origin_check, transaction
-from app.image_processing import process_image
-from app.models import Submission
-from app.storage import LocalObjectStore
-from app.submission_schemas import (
+from app.api.dependencies import get_user, origin_check, transaction
+from app.db.models import Submission
+from app.integrations.storage import LocalObjectStore
+from app.schemas.submissions import (
     MAX_BYTES,
     RemovalBody,
     SubmissionPage,
     SubmissionRequest,
     SubmissionView,
 )
+from app.services import submissions
+from app.services.auth import AuthError, throttle
+from app.services.image_processing import process_image
 
 router = APIRouter(prefix="/api/v1", tags=["Submissions"])
 

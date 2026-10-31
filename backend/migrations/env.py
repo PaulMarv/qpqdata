@@ -1,8 +1,8 @@
 from alembic import context
 
-from app.config import Settings
-from app.db import make_engine
-from app.models import Base
+from app.core.config import Settings
+from app.db.models import Base
+from app.db.session import make_engine
 
 
 def run() -> None:

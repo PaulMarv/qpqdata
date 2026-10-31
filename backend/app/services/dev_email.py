@@ -3,8 +3,6 @@
 import hashlib
 import re
 import secrets
-import smtplib
-import ssl
 from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 
@@ -12,18 +10,15 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from app.config import Settings
-from app.dev_seed import FIXTURE_REFERENCE, TEST_DOMAIN, require_development
-from app.models import DevEmailVerification, OrganisationDomain, User
+from app.core.config import Settings
+from app.db.models import DevEmailVerification, OrganisationDomain, User
+from app.integrations.email import deliver_message
+from app.services.dev_seed import FIXTURE_REFERENCE, TEST_DOMAIN, require_development
 
 DEV_ISSUER = "urn:qpqdata:development-email"
 
 
 class VerificationError(Exception):
-    pass
-
-
-class DeliveryError(Exception):
     pass
 
 
@@ -85,18 +80,6 @@ def send_verification(settings: Settings, email: str, token: str) -> None:
         subtype="html",
     )
     deliver_message(settings, message)
-
-
-def deliver_message(settings: Settings, message: EmailMessage) -> None:
-    try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=5) as smtp:
-            if settings.smtp_starttls:
-                smtp.starttls(context=ssl.create_default_context())
-            if settings.smtp_username:
-                smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
-            smtp.send_message(message)
-    except (OSError, smtplib.SMTPException):
-        raise DeliveryError("Development email delivery unavailable.") from None
 
 
 def register(session: Session, settings: Settings, email: str) -> None:
@@ -178,8 +161,8 @@ def verify(session: Session, settings: Settings, token: str) -> None:
     challenge.consumed_at = now
 
     if settings.auth_enabled:
-        from app.auth import grant_welcome
-        from app.eligibility import eligible
+        from app.services.auth import grant_welcome
+        from app.services.eligibility import eligible
 
         if eligible(session, settings, user):
             grant_welcome(session, user, settings)

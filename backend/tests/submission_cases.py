@@ -12,14 +12,21 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
-from app import auth, projects
-from app.config import Settings
-from app.dev_email import DEV_ISSUER
+from app.core.config import Settings
+from app.db.models import (
+    AuthSession,
+    CreditLedgerEntry,
+    Project,
+    ProjectReservation,
+    Submission,
+    User,
+)
+from app.integrations.storage import LocalObjectStore
+from app.jobs.upload_cleanup import cleanup
 from app.main import create_app
-from app.models import AuthSession, CreditLedgerEntry, Project, ProjectReservation, Submission, User
-from app.project_schemas import FormDefinition, Label, ProjectDefinition, Question
-from app.storage import LocalObjectStore
-from app.upload_cleanup import cleanup
+from app.schemas.projects import FormDefinition, Label, ProjectDefinition, Question
+from app.services import auth, projects
+from app.services.dev_email import DEV_ISSUER
 
 
 def exercise_submissions(engine, monkeypatch, tmp_path):
@@ -262,14 +269,14 @@ def exercise_submissions(engine, monkeypatch, tmp_path):
 
         slot = client.post(url, json=body(), headers=headers).json()["id"]
         with monkeypatch.context() as patch:
-            patch.setattr("app.submissions.datetime", Later)
+            patch.setattr("app.services.submissions.datetime", Later)
             assert (
                 client.put(
                     f"/api/v1/submissions/{slot}/image", content=photo("green"), headers=headers
                 ).status_code
                 == 410
             )
-            patch.setattr("app.upload_cleanup.datetime", Later)
+            patch.setattr("app.jobs.upload_cleanup.datetime", Later)
             expired, _ = cleanup(engine, str(tmp_path))
             assert expired >= 2
         # Orphan sweep removes only old unreferenced sanitized objects.

@@ -1,27 +1,19 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Literal
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 from starlette.concurrency import run_in_threadpool
 
-from app.auth_api import router as auth_router
-from app.config import Settings
-from app.db import make_engine
-from app.dev_email_api import router as dev_email_router
-from app.project_api import router as project_router
-from app.submission_api import router as submission_router
-
-
-class HealthResponse(BaseModel):
-    status: Literal["ok", "unavailable"]
-    service: Literal["qpqdata-api"] = "qpqdata-api"
+from app.api.routes.auth import router as auth_router
+from app.api.routes.dev_email import router as dev_email_router
+from app.api.routes.health import router as health_router
+from app.api.routes.projects import router as project_router
+from app.api.routes.submissions import router as submission_router
+from app.core.config import Settings
+from app.db.session import make_engine
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -78,30 +70,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_credentials=False,
     )
 
-    @app.get("/api/v1/health/live", response_model=HealthResponse, operation_id="getLiveness")
-    def live() -> HealthResponse:
-        return HealthResponse(status="ok")
-
-    @app.get(
-        "/api/v1/health/ready",
-        response_model=HealthResponse,
-        responses={503: {"model": HealthResponse}},
-        operation_id="getReadiness",
-    )
-    def ready(request: Request) -> HealthResponse | JSONResponse:
-        try:
-            with request.app.state.engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
-                revision = connection.execute(
-                    text("SELECT version_num FROM alembic_version")
-                ).scalar()
-                if revision != "0005":
-                    raise RuntimeError("schema unavailable")
-        except (SQLAlchemyError, RuntimeError):
-            return JSONResponse(
-                status_code=503, content=HealthResponse(status="unavailable").model_dump()
-            )
-        return HealthResponse(status="ok")
+    app.include_router(health_router)
 
     return app
 

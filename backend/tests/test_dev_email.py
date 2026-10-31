@@ -4,10 +4,15 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.config import Settings
-from app.dev_email import VerificationError, approved_domain, normalise_address, send_verification
-from app.dev_seed import require_development
+from app.core.config import Settings
 from app.main import create_app
+from app.services.dev_email import (
+    VerificationError,
+    approved_domain,
+    normalise_address,
+    send_verification,
+)
+from app.services.dev_seed import require_development
 
 
 def development(**overrides) -> Settings:
@@ -80,7 +85,7 @@ def test_external_smtp_rejected() -> None:
 
 def test_mail_uses_fragment_and_configured_local_frontend(monkeypatch, caplog) -> None:
     smtp = MagicMock()
-    monkeypatch.setattr("app.dev_email.smtplib.SMTP", smtp)
+    monkeypatch.setattr("app.integrations.email.smtplib.SMTP", smtp)
     secret = "synthetic-verification-secret"
     send_verification(
         development(frontend_url="http://127.0.0.1:3001"), "student@university.test", secret

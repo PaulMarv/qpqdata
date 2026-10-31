@@ -36,7 +36,7 @@ services:
       QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
     depends_on:
       migrate: {condition: service_completed_successfully}
-    command: [".venv/bin/python", "-m", "app.dev_seed"]
+    command: [".venv/bin/python", "-m", "app.cli.dev_seed"]
     restart: "no"
   backend:
     build: ./backend
@@ -73,7 +73,7 @@ services:
     volumes: ["image_data:/app/private-images"]
     depends_on:
       migrate: {condition: service_completed_successfully}
-    command: [".venv/bin/python", "-m", "app.upload_cleanup"]
+    command: [".venv/bin/python", "-m", "app.jobs.upload_cleanup"]
     restart: "on-failure"
     healthcheck:
       test: ["CMD", ".venv/bin/python", "-c", "import pathlib,time; p=pathlib.Path('/tmp/qpq-upload-cleaner-heartbeat'); assert p.exists() and time.time()-p.stat().st_mtime<150"]

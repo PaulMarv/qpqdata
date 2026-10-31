@@ -39,3 +39,28 @@ The historical Phase 1 limitations above are superseded for authentication and c
 ## Phase 2C private images (current behavior)
 
 [Phase 2C](phase-2c.md) supersedes the earlier deferred-submission limitations for local development only. Migration 0005 binds new image submissions to immutable project definition versions, preserves consent and labels, and adds capacity/lifecycle/history guards and a removal queue. Original Phase 1 submission records retain their old values and are not reinterpreted. There are 15 model tables. Binaries are stored outside PostgreSQL in a backend-only private volume via an object-store port; only decoded/re-encoded pixel content is persisted. No owner moderation access, decisions, credit payout or dataset export is enabled. Pending work blocks collection funding release. The local adapter is forbidden in staging/production; production storage/moderation operations remain review gates.
+
+## Backend package structure
+
+The backend now separates concerns under `backend/app/`:
+
+```text
+app/
+├── main.py                 # Application composition and lifespan
+├── api/
+│   ├── dependencies.py     # Shared HTTP authentication and transaction boundaries
+│   └── routes/             # Auth, development email, projects, submissions, health
+├── schemas/                # Pydantic request/response and criteria contracts
+├── services/               # Authentication, eligibility, collections, image processing, submissions
+├── db/
+│   ├── models.py           # SQLAlchemy models and metadata
+│   └── session.py          # Engine/session construction
+├── core/                   # Environment configuration
+├── integrations/           # SMTP delivery and private object-store adapter
+├── cli/                    # Explicit development fixture command
+└── jobs/                   # Abandoned-upload cleanup worker
+```
+
+Routes translate HTTP requests into service calls and own explicit transaction boundaries. Services enforce domain rules; schemas validate contracts; integrations handle external I/O. SQLAlchemy models remain together in `db/models.py` to preserve their existing relationship/metadata registration without introducing unnecessary repository abstractions. The fixture service remains development-gated; its CLI is `python -m app.cli.dev_seed`. The cleanup worker is `python -m app.jobs.upload_cleanup`. Neither runs on import.
+
+This is a package reorganisation only: public API paths, operation IDs, generated frontend contracts, ledger rules and frozen migration revisions are unchanged. Alembic's environment imports models from their new package; it does not create tables at application startup. The Uvicorn entrypoint remains `app.main:app`.

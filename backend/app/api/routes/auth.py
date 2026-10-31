@@ -1,88 +1,22 @@
 import secrets
-from collections.abc import Iterator
-from contextlib import contextmanager
-from typing import Literal
-from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app import auth
-from app.dev_email import DeliveryError
-from app.models import Project, ProjectReservation, User
+from app.api.dependencies import cookie_names, get_user, origin_check, transaction
+from app.db.models import Project, ProjectReservation, User
+from app.schemas.auth import (
+    LinkRequest,
+    Message,
+    Profile,
+    ProfileUpdate,
+    TokenRequest,
+    VerificationResult,
+)
+from app.services import auth
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
-
-
-class LinkRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    email: str = Field(max_length=254)
-    intent: Literal["signup", "login"]
-    display_name: str = Field(default="", max_length=100)
-
-
-class TokenRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    token: SecretStr = Field(max_length=100)
-
-
-class ProfileUpdate(BaseModel):
-    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    display_name: str = Field(min_length=1, max_length=100, pattern=r".*\S.*")
-
-
-class Message(BaseModel):
-    message: str
-
-
-class Profile(BaseModel):
-    id: UUID
-    email: str
-    display_name: str
-    credit_balance: int
-    reserved_credits: int
-
-
-class VerificationResult(BaseModel):
-    status: Literal["authenticated", "pending_review"]
-
-
-def cookie_names(request: Request) -> tuple[str, str]:
-    local = request.app.state.settings.environment == "development"
-    return ("qpq_session", "qpq_csrf") if local else ("__Host-qpq_session", "__Host-qpq_csrf")
-
-
-def origin_check(request: Request) -> None:
-    if request.headers.get("origin") != request.app.state.settings.frontend_url.rstrip("/"):
-        raise HTTPException(403, "Request rejected.")
-
-
-@contextmanager
-def transaction(request: Request) -> Iterator[Session]:
-    settings = getattr(request.app.state, "settings", None)
-    if not settings or not settings.auth_enabled:
-        raise HTTPException(404, "Not found")
-    try:
-        with Session(request.app.state.engine) as session, session.begin():
-            yield session
-    except auth.AuthError as error:
-        raise HTTPException(error.status, str(error)) from None
-    except (SQLAlchemyError, DeliveryError):
-        raise HTTPException(503, "Account service unavailable. Try again later.") from None
-
-
-def get_user(session: Session, request: Request, mutation: bool = False) -> User:
-    name, _ = cookie_names(request)
-    return auth.authenticate(
-        session,
-        request.app.state.settings,
-        request.cookies.get(name),
-        request.headers.get("x-csrf-token"),
-        mutation,
-    )
 
 
 def profile(session: Session, user: User) -> Profile:

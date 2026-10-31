@@ -43,7 +43,7 @@ Private images are read through an authenticated endpoint authorised for **the c
 
 Database transactions hold the submission lock through object write and metadata commit. A failed write/commit is rolled back and the attempt object is removed when possible. Crashes can leave unreferenced sanitized objects; cleanup reclaims only unreferenced files older than **one hour**. It locks the matching submission row before checking its committed reference, serializing against writers so a long commit cannot lose its object. Referenced images, including hidden ones awaiting review, are preserved. Empty attempt directories are removed where possible. No original image temporary files are created.
 
-The `upload-cleaner` Compose worker scans every 60 seconds, marks expired Uploading slots abandoned and sweeps orphan files. Its healthcheck uses a recent successful-scan heartbeat. It logs counts/generic failures only; no credentials, tokens, paths or image/answer payloads. A one-shot scan can be run with `docker compose exec upload-cleaner .venv/bin/python -m app.upload_cleanup --once`. The worker does not remove submission/consent/ledger rows or decide moderation/removal requests. A discarded/expired row remains as audit history and cannot be reopened. Retry the same slot before expiry; after expiry, start a fresh contribution with new consent/key.
+The `upload-cleaner` Compose worker scans every 60 seconds, marks expired Uploading slots abandoned and sweeps orphan files. Its healthcheck uses a recent successful-scan heartbeat. It logs counts/generic failures only; no credentials, tokens, paths or image/answer payloads. A one-shot scan can be run with `docker compose exec upload-cleaner .venv/bin/python -m app.jobs.upload_cleanup --once`. The worker does not remove submission/consent/ledger rows or decide moderation/removal requests. A discarded/expired row remains as audit history and cannot be reopened. Retry the same slot before expiry; after expiry, start a fresh contribution with new consent/key.
 
 ## Privacy reporting / minimum moderation mechanism
 
@@ -70,11 +70,11 @@ Do not use this local implementation as a publicly operated dataset service befo
 | POST | `/api/v1/submissions/{id}/cancel` | Abandon own incomplete upload, idempotently |
 | POST | `/api/v1/submissions/{id}/removal-request` | Record own concern and suppress access |
 
-- `backend/app/submission_schemas.py`, `submissions.py`: contracts, criteria answer rules, admission, completion and provenance.
+- `backend/app/schemas/submissions.py`, `services/submissions.py`: contracts, criteria answer rules, admission, completion and provenance.
 - `backend/app/image_processing.py`, `storage.py`, `upload_cleanup.py`: bounded clean-image processing, private adapter, expiry/orphan worker.
-- `backend/app/submission_api.py`: auth/CSRF and explicit transaction boundaries, streaming and private HTTP responses.
-- `backend/app/models.py`, migrations `0005*`: additive submission fields/FK/uniqueness and lifecycle/capacity/history/funding guards; one new removal table (15 model tables total).
-- `backend/app/projects.py`: preserve funding while submissions remain; allow pause/resume with pending records.
+- `backend/app/api/routes/submissions.py`: auth/CSRF and explicit transaction boundaries, streaming and private HTTP responses.
+- `backend/app/db/models.py`, migrations `0005*`: additive submission fields/FK/uniqueness and lifecycle/capacity/history/funding guards; one new removal table (15 model tables total).
+- `backend/app/services/projects.py`: preserve funding while submissions remain; allow pause/resume with pending records.
 - `frontend/src/app/components/contributor.tsx`, `image-labels.tsx`, `submission-card.tsx`: capture/selection, per-image forms/review/progress and personal records/recovery/removal.
 - `frontend/src/app/projects/[id]/contribute/`, `(account)/submissions/`, `api/submissions/`: protected contributor page, personal list and same-origin authenticated proxy.
 - `frontend/src/lib/submissions.ts`, generated OpenAPI/types: typed contracts, validation helpers and progress-aware binary transport.

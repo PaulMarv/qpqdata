@@ -77,7 +77,7 @@ Commit both generated files and review changes. Python formatting: `uv run --fro
 
 - `frontend/src/app/`: mobile-first accessible foundation page, layout, CSS and frontend liveness route.
 - `frontend/src/lib/`: generated OpenAPI types and typed FastAPI client.
-- `backend/app/`: configuration, engine lifecycle, health API and initial ORM models.
+- `backend/app/`: separate API routes/dependencies, schemas, services, database, configuration, integrations and job packages; see [the package structure](docs/architecture.md#backend-package-structure).
 - `backend/migrations/`: frozen initial schema, including append-only ledger triggers.
 - `backend/tests/` and `frontend/tests/`: synthetic health, contract, UI, schema and opt-in PostgreSQL checks.
 - `infra/`: infrastructure notes; root Compose orchestrates services.

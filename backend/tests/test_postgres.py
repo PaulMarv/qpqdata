@@ -13,8 +13,8 @@ from sqlalchemy import func, inspect, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
-from app.db import make_engine
-from app.models import Base, CreditLedgerEntry, User
+from app.db.models import Base, CreditLedgerEntry, User
+from app.db.session import make_engine
 
 
 @pytest.mark.postgres

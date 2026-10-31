@@ -8,11 +8,8 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
-from app import auth, projects
-from app.config import Settings
-from app.dev_email import DEV_ISSUER
-from app.main import create_app
-from app.models import (
+from app.core.config import Settings
+from app.db.models import (
     AuthSession,
     CreditLedgerEntry,
     Project,
@@ -20,7 +17,10 @@ from app.models import (
     ProjectVersion,
     User,
 )
-from app.project_schemas import FormDefinition, Label, ProjectDefinition, Question
+from app.main import create_app
+from app.schemas.projects import FormDefinition, Label, ProjectDefinition, Question
+from app.services import auth, projects
+from app.services.dev_email import DEV_ISSUER
 
 
 def exercise_projects(engine, monkeypatch) -> None:

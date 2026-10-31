@@ -6,10 +6,11 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.config import Settings
-from app.dev_email import DEV_ISSUER, DeliveryError, VerificationError, register, verify
-from app.dev_seed import TEST_DOMAIN, seed
-from app.models import DevEmailVerification, OrganisationDomain, User
+from app.core.config import Settings
+from app.db.models import DevEmailVerification, OrganisationDomain, User
+from app.integrations.email import DeliveryError
+from app.services.dev_email import DEV_ISSUER, VerificationError, register, verify
+from app.services.dev_seed import TEST_DOMAIN, seed
 
 
 def exercise_verification(engine, monkeypatch) -> None:
@@ -20,7 +21,8 @@ def exercise_verification(engine, monkeypatch) -> None:
     )
     sent = []
     monkeypatch.setattr(
-        "app.dev_email.send_verification", lambda config, email, token: sent.append((email, token))
+        "app.services.dev_email.send_verification",
+        lambda config, email, token: sent.append((email, token)),
     )
 
     def request(email):
@@ -110,7 +112,7 @@ def exercise_verification(engine, monkeypatch) -> None:
     def fail_delivery(*args):
         raise DeliveryError("synthetic SMTP failure")
 
-    monkeypatch.setattr("app.dev_email.send_verification", fail_delivery)
+    monkeypatch.setattr("app.services.dev_email.send_verification", fail_delivery)
     with pytest.raises(DeliveryError):
         request("delivery-failure@university.test")
     with Session(engine) as session:

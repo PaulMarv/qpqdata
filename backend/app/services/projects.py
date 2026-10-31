@@ -4,8 +4,7 @@ from uuid import UUID
 from sqlalchemy import String, case, cast, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.auth import AuthError, balance
-from app.models import (
+from app.db.models import (
     CreditLedgerEntry,
     Project,
     ProjectReservation,
@@ -13,7 +12,8 @@ from app.models import (
     Submission,
     User,
 )
-from app.project_schemas import ProjectDefinition, ProjectPage, ProjectView
+from app.schemas.projects import ProjectDefinition, ProjectPage, ProjectView
+from app.services.auth import AuthError, balance
 
 
 def owner_project(session: Session, user: User, project_id: UUID) -> Project:

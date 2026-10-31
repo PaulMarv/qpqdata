@@ -58,11 +58,11 @@ Next.js `/projects` and `/projects/{uuid}` are public; `/collections`, `/collect
 
 Migration `0004` adds project version/discovery columns, nullable ledger `project_id`, `project_versions` and `project_reservations` (14 model tables total). Its companion frozen SQL installs funding/history/nonnegative guards. Migrations 0001–0003 are unchanged. No user records are seeded by this phase. No volumes are removed. Destructive downgrade remains disabled.
 
-- `backend/app/project_schemas.py`: versioned API/criteria validation contracts.
-- `backend/app/projects.py`: definition, ownership, discovery, lifecycle, reservations.
-- `backend/app/project_api.py`: authenticated/public HTTP boundaries.
-- `backend/app/models.py`, `migrations/versions/0004*`: additive models/schema/integrity guards.
-- `backend/app/auth.py`, `auth_api.py`: lock-order alignment and derived reserved-wallet total.
+- `backend/app/schemas/projects.py`: versioned API/criteria validation contracts.
+- `backend/app/services/projects.py`: definition, ownership, discovery, lifecycle, reservations.
+- `backend/app/api/routes/projects.py`: authenticated/public HTTP boundaries.
+- `backend/app/db/models.py`, `migrations/versions/0004*`: additive models/schema/integrity guards.
+- `backend/app/services/auth.py`, `api/routes/auth.py`: lock-order alignment and derived reserved-wallet total.
 - `frontend/src/app/components/project-*`: editor, dynamic builder, preview, cards and lifecycle actions.
 - `frontend/src/app/projects/`, `(account)/collections/`, `api/projects/`: public/owner pages and typed transport.
 - `frontend/src/lib/projects.ts`, `project-server.ts`, generated API contract: shared view types/client integration.

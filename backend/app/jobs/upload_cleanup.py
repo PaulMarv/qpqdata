@@ -8,8 +8,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Submission
-from app.storage import LocalObjectStore
+from app.db.models import Submission
+from app.integrations.storage import LocalObjectStore
 
 
 def cleanup(engine, root: str) -> tuple[int, int]:
@@ -56,8 +56,8 @@ def cleanup(engine, root: str) -> tuple[int, int]:
 def main():
     import sys
 
-    from app.config import Settings
-    from app.db import make_engine
+    from app.core.config import Settings
+    from app.db.session import make_engine
 
     settings = Settings()
     if not settings.uploads_enabled:

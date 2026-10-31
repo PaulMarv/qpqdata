@@ -7,12 +7,19 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.auth import AuthError
-from app.image_processing import ProcessedImage
-from app.models import Project, ProjectReservation, ProjectVersion, RemovalRequest, Submission, User
-from app.project_schemas import ProjectDefinition
-from app.storage import ObjectStore
-from app.submission_schemas import MAX_BATCH, PER_USER_LIMIT, SubmissionRequest, SubmissionView
+from app.db.models import (
+    Project,
+    ProjectReservation,
+    ProjectVersion,
+    RemovalRequest,
+    Submission,
+    User,
+)
+from app.integrations.storage import ObjectStore
+from app.schemas.projects import ProjectDefinition
+from app.schemas.submissions import MAX_BATCH, PER_USER_LIMIT, SubmissionRequest, SubmissionView
+from app.services.auth import AuthError
+from app.services.image_processing import ProcessedImage
 
 
 def validate_answers(definition: ProjectDefinition, label: str, answers: dict) -> None:

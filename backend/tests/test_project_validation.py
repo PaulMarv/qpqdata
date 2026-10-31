@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.project_schemas import FormDefinition, ProjectDefinition, Question
+from app.schemas.projects import FormDefinition, ProjectDefinition, Question
 
 
 @pytest.mark.parametrize(

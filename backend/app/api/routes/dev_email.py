@@ -1,29 +1,16 @@
 from collections.abc import Callable
 
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.auth import AuthError
-from app.config import Settings
-from app.dev_email import DeliveryError, VerificationError, register, verify
+from app.core.config import Settings
+from app.integrations.email import DeliveryError
+from app.schemas.dev_email import MessageResponse, RegisterRequest, VerifyRequest
+from app.services.auth import AuthError
+from app.services.dev_email import VerificationError, register, verify
 
 router = APIRouter(prefix="/api/v1/dev-email", tags=["Development email only"])
-
-
-class RegisterRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    email: str = Field(max_length=254)
-
-
-class VerifyRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
-    token: SecretStr = Field(max_length=100)
-
-
-class MessageResponse(BaseModel):
-    message: str
 
 
 def execute(request: Request, action: Callable[[Session, Settings, str], None], value: str) -> None:

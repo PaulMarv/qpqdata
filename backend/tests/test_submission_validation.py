@@ -3,12 +3,12 @@ import io
 import pytest
 from PIL import Image, PngImagePlugin
 
-from app.auth import AuthError
-from app.image_processing import process_image
-from app.project_schemas import FormDefinition, Label, ProjectDefinition, Question
-from app.storage import LocalObjectStore
-from app.submission_schemas import SubmissionRequest
-from app.submissions import validate_answers
+from app.integrations.storage import LocalObjectStore
+from app.schemas.projects import FormDefinition, Label, ProjectDefinition, Question
+from app.schemas.submissions import SubmissionRequest
+from app.services.auth import AuthError
+from app.services.image_processing import process_image
+from app.services.submissions import validate_answers
 
 
 def definition(question=None):
@@ -155,7 +155,7 @@ def test_limits_pixels_dimensions_formats_animation_and_truncation(monkeypatch):
     )
     with pytest.raises(AuthError):
         process_image(out.getvalue(), definition())
-    monkeypatch.setattr("app.image_processing.MAX_PIXELS", 100)
+    monkeypatch.setattr("app.services.image_processing.MAX_PIXELS", 100)
     with pytest.raises(AuthError):
         process_image(image_bytes(), definition())
 
@@ -187,7 +187,7 @@ def test_storage_rejects_paths_and_symlinks(tmp_path):
 def test_local_upload_storage_fails_closed_outside_development(environment):
     from pydantic import ValidationError
 
-    from app.config import Settings
+    from app.core.config import Settings
 
     with pytest.raises(ValidationError):
         Settings(

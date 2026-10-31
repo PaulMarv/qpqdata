@@ -1,7 +1,7 @@
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateTable
 
-from app.models import Base
+from app.db.models import Base
 
 
 def test_all_models_compile_for_postgres() -> None:

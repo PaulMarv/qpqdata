@@ -6,11 +6,9 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app import projects
-from app.auth import AuthError
-from app.auth_api import get_user, origin_check, transaction
-from app.models import Project
-from app.project_schemas import (
+from app.api.dependencies import get_user, origin_check, transaction
+from app.db.models import Project
+from app.schemas.projects import (
     Category,
     ProjectDefinition,
     ProjectEdit,
@@ -19,6 +17,8 @@ from app.project_schemas import (
     State,
     Transition,
 )
+from app.services import projects
+from app.services.auth import AuthError
 
 router = APIRouter(prefix="/api/v1/projects", tags=["Collections"])
 

@@ -7,9 +7,9 @@ from threading import BoundedSemaphore
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from app.auth import AuthError
-from app.project_schemas import ProjectDefinition
-from app.submission_schemas import MAX_BYTES, MAX_PIXELS
+from app.schemas.projects import ProjectDefinition
+from app.schemas.submissions import MAX_BYTES, MAX_PIXELS
+from app.services.auth import AuthError
 
 # Bound CPU/memory per process. More processes require matching deployment limits.
 _PROCESSORS = BoundedSemaphore(2)

@@ -308,3 +308,19 @@ No functional startup, migration, database-test or API-connectivity blocker rema
 ## Original verification history
 
 Before this follow-up, the host-only suite passed 10 backend tests with the PostgreSQL test skipped, and four frontend tests; lint, type checks, formatting, production build and offline migration rendering passed. Docker execution and PostgreSQL triggers had not been verified then. The executed results above replace those earlier outstanding infrastructure checks without claiming any unexecuted browser checks.
+
+## Backend package separation — 31 October 2026
+
+Reorganised the existing implementation into API routes/dependencies, schemas, services, database, core configuration, integrations, CLI and job packages. See [architecture](architecture.md#backend-package-structure). Updated imports, monkeypatch targets, Alembic environment imports and Compose entrypoints. No frozen migration revision/SQL resource or frontend API contract changed; no volumes were removed or reset.
+
+Executed verification:
+
+- First local and PostgreSQL-enabled runs failed during collection because the extracted SMTP `DeliveryError` was still imported from its former service module. Corrected callers to import it from `app.integrations.email`; reran the full suite successfully.
+- Locked backend suite against a fresh disposable PostgreSQL database: **96 passed**, including migration, authentication, ledger/reservation and submission integration scenarios and the unchanged OpenAPI contract check. Five existing dependency/configuration deprecation warnings remain (Starlette/httpx and Alembic path separator).
+- Ruff lint: passed. Ruff formatting: all **55 Python files** already formatted. `git diff --check`: passed.
+- Frontend Vitest: **46 passed across 7 files**. Frontend source/dependencies/contracts were unchanged; frontend lint, typecheck and production build were not rerun for this Python package-only change.
+- `docker compose config --quiet`: passed. Backend, migration, development-seed and cleanup images rebuilt successfully. Compose startup/wait succeeded: backend, cleanup worker, PostgreSQL and Mailpit healthy; migration and development-seed commands exited successfully. Existing frontend remained running.
+- Running backend reports `0005 (head)`. Alembic metadata comparison reports no new upgrade operations. Frozen migration versions and SQL resources have no diff.
+- Backend liveness/readiness and frontend health returned HTTP 200. Homepage rendered HTTP 200 with server-rendered API readiness; all nine referenced JavaScript/CSS assets returned HTTP 200.
+
+No new features or schema changes were introduced. Browser camera/manual contribution acceptance was not repeated for this package-only change.

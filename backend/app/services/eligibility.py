@@ -3,10 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import Settings
-from app.dev_email import DEV_ISSUER
-from app.dev_seed import FIXTURE_REFERENCE
-from app.models import Organisation, OrganisationDomain, OrganisationMembership, User
+from app.core.config import Settings
+from app.db.models import Organisation, OrganisationDomain, OrganisationMembership, User
+from app.services.dev_email import DEV_ISSUER
+from app.services.dev_seed import FIXTURE_REFERENCE
 
 PERSONAL_DOMAINS = {
     "gmail.com",

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from app.project_schemas import Contract, Key
+from app.schemas.projects import Contract, Key
 
 MAX_BYTES = 10 * 1024 * 1024
 MAX_PIXELS = 24_000_000
