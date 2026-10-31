@@ -1,3 +1,84 @@
+# UI consistency follow-up — 31 October 2026
+
+User-requested visual refinements: shared blue/ink palette across home, logo, accounts and collections; locally hosted Space Grotesk headings/logo and Manrope body text; softer bordered form surfaces, consistent blue focus rings, larger rounded controls and inset select chevrons. SIL Open Font Licence notices are kept beside the font files. No runtime font-CDN requests or new package dependencies were introduced.
+
+The native profile disclosure now dismisses on outside pointer interaction, Escape (returning focus to the avatar), focus leaving the disclosure, navigation link selection and route/user changes. Existing guest/authenticated actions and authentication endpoints are preserved.
+
+Executed: **29 frontend tests passed** across five files, including three new dropdown interaction tests; ESLint, strict TypeScript, Prettier and host production build passed. The frontend-only Docker rebuild also passed and the container is healthy. HTTP checks passed for the homepage, frontend health, stylesheets and both CSS-referenced local font files. No backend schema, ledger or authentication-service changes were made; the prior backend suite was not rerun for this frontend-only follow-up.
+
+Chrome desktop screenshots of the refreshed homepage and collection-creation form were inspected. The actual focused input showed the matching blue ring, the category chevron had an inset from the right edge, both pages used the new typography/palette, and all five profile actions appeared. Clicking outside removed the dropdown from the accessibility tree; Escape closed it and left the avatar focused. No form was saved and no credits were posted during these UI checks. Full mobile and cross-browser visual acceptance remains pending.
+
+Initial frontend test execution failed because the navigation mock lacked the new `usePathname` dependency; the mock was updated and all tests rerun successfully. A jsdom navigation warning from the link-selection test was removed by preventing actual navigation in that test only; the dropdown close handler remains exercised. Early helper edits used an incorrect relative working directory and made no changes before being rerun with absolute paths. Two initial font-delivery probes incorrectly expected HTML preload elements; this build declares the font resources in CSS. The corrected stylesheet/font-face resource probe passed for both locally hosted fonts.
+
+---
+
+# Phase 2B verification — 31 October 2026
+
+## Result and boundary
+
+Collection creation/editing, versioned criteria, owner lifecycle, public discovery and ledger-backed reservation/release are implemented. Phase 2A and Mailpit are retained. No image capture, uploads, submission creation, contribution payouts or moderation were implemented. Services are left running for Phase 2B review.
+
+## Executed results
+
+| Check | Actual result |
+| --- | --- |
+| Compose validation | Passed: `docker compose config --quiet`, no secrets printed. |
+| Docker builds/startup | Passed: full `docker compose up --build -d --wait --wait-timeout 120`, then final backend rebuilds for response-cache headers and authentication-disabled draft privacy. Both exited 0. Locked dependency installs reused; no dependency changes. |
+| Services | PostgreSQL, backend, frontend and Mailpit healthy. Migration and development seed jobs exited 0. Existing named volume retained. |
+| PostgreSQL | `pg_isready` reports accepting connections; host remains loopback port 55432. Existing PostgreSQL 17.11 instance retained. |
+| Migration | Passed on fresh synthetic databases and existing backed-up local database. `alembic current` in running backend reports **0004 (head)**; independent SQL revision read confirms 0004. Readiness requires 0004. Prior migrations unchanged. |
+| Backend full suite | **59 passed, 0 skipped**, final run 2.52 s, locked uv/Python 3.12.13 with TEST_DATABASE_URL set to new disposable PostgreSQL database `qpqdata_phase1_test_4b6b781f70`. The historical helper prefix is unchanged; this run includes Phase 2B. |
+| Backend host-only suite | **58 passed, 1 intentionally skipped** without TEST_DATABASE_URL. This does not substitute for the separately successful full PostgreSQL run. |
+| Schema | PostgreSQL integration applies normal migrations, compares ORM/schema through Alembic, and exercises original ledger integrity plus new collection guards. Offline PostgreSQL migration rendering passed in the suite. SQLite migration comparison was replaced because PostgreSQL-specific funding triggers/FKs are not portable; actual PostgreSQL comparison remains mandatory in integration. |
+| Backend lint/format | Ruff check passed; all 30 Python files formatted. |
+| Frontend tests | **26 passed across 5 files**, including 12 new collection component/transport tests, final run 2.04 s. |
+| Frontend lint/types/format | ESLint, strict `tsc --noEmit`, and whole-frontend Prettier checks passed. |
+| Frontend production builds | Host Node 22 `npm run build` and Docker Node 22 production build both passed. All new public/owner/API routes compiled. |
+| API contract | OpenAPI exported from FastAPI and TypeScript declarations regenerated successfully. Frontend type checks cover the resulting contract. |
+| HTTP health/render/assets | Backend live/ready and frontend health returned 200/ok. Homepage parsed visible HTML contains expected heading and actual typed API `API: ready`. All 9 referenced JavaScript/CSS assets returned 200; nosniff header verified. Repeated successfully after final backend rebuild. |
+| Final cache headers | Public collection endpoint returned 200 with `Cache-Control: no-store`, `Vary: Cookie, Origin`. Correct token-list assertion passed. |
+| Live end-to-end collection smoke | Passed through Next.js HTTP transport, real FastAPI/PostgreSQL and Mailpit. Details below. |
+| Visual inspection | Desktop Chrome screenshot/accessibility tree of `/projects` inspected: Figma-style search/filter cards, empty state, pagination, public Explore and guest account actions render. Other screen/device visual acceptance is **not marked passed**. Native Chrome focus changed during the next inspection and remaining UI interactions were stopped to avoid interfering with the user. Component tests and HTTP rendering are independent passed checks, not a substitute for full mobile visual review. |
+| Git whitespace | `git diff --check` passed. |
+
+The single PostgreSQL test item intentionally chains extensive synthetic Phase 1, email, authentication and collection scenarios through helper suites. “59 passed” is the Pytest item count, not a claim of 59 separate new collection integration cases. Upstream non-failing warnings remain: Starlette/httpx TestClient deprecation and Alembic legacy path-separator handling. No dependency upgrade was made to silence them.
+
+## Collection and credit scenarios exercised
+
+- Duplicate names with distinct UUIDs; private drafts and owner-only editing; optimistic draft versions and immutable snapshot history.
+- Full schema bounds, five question types, options, duplicate keys/names, incompatible rules and invalid min/max combinations.
+- Required publication fields, expired closing date, insufficient funds, permitted lifecycle transitions, terminal close and frozen published definitions.
+- Authenticated Origin/CSRF, guest mutation rejection, hidden non-owner drafts refusal of an old session when email verification is removed, and hidden drafts while authentication is disabled.
+- Search by keyword/name/UUID, literal wildcard escaping, category/status filtering, relevance, stable pagination across multiple pages and exclusion of private drafts.
+- Exact reservation, repeat publication without double debit, pause/resume without extra debit, exact one-time release and repeat close without double refund.
+- Concurrent competing 40-QC publications from a 50-QC wallet: one succeeds; concurrent close refunds only once.
+- Direct concurrent ledger debit inserts cannot overdraw; overspend, orphan reservation debit, unfunded published state, immutable history changes, changed owner, reset release pointer, wrong-amount/wrong-owner refunds and failure-after-reserve all roll back.
+- Original ledger immutability, welcome-grant idempotency, sessions, eligibility, Mailpit verification expiry/replay and all prior backend scenarios remain in the passing suite.
+- Frontend tests cover editor payload/defaults, version conflict messages, labels/choices, all field types, stale-rule clearing, stable-key reorder, unsaved preview, confirmation/cancellation, funding errors, read-only requirements, cards/pagination and Origin/body-size/cookie/CSRF transport boundaries.
+
+## Running-stack smoke and retained records
+
+A new synthetic `university.test` account requested a signup link through the existing frontend authentication endpoint. Mailpit captured it, the same HTTP cookie jar verified it, and the account received 50 QC. No raw token, cookie or secret link was printed. The smoke rendered owner create/edit HTML, created and edited a complete Kitchen collection through the typed Next transport, published definition v2, verified 30 available/20 reserved, repeated publication, paused/resumed, read public search/details with label/question/image requirements, rejected published edits, closed twice and verified 50 available/0 reserved. A separate 51-image draft failed publication without changing its wallet. Logout and protected-route redirect passed. Captured backend/frontend/Mailpit logs contained neither the smoke token nor secret-link fragments.
+
+Retained development smoke state: one synthetic account, one closed published collection (`dd5f964c-b3bc-444b-baf8-44531cdfa829`), one unfunded private draft and their authentic ledger/challenge/session/throttle records. No fake balance or direct ledger correction was used. Earlier disposable verification databases are retained; none were dropped/reset. No volume was removed.
+
+Before deployment a custom-format backup was saved to `/tmp/qpqdata-pre-phase2b.dump` and a per-record hash baseline to `/tmp/qpqdata-pre-phase2b-records.json` (both mode 0600, outside Git; private values not printed). Immediately after migration **all 24 original rows** retained all original column values. After the normal signup/logout smoke, a final read-only audit confirmed all original rows still exist: **22 are byte-for-value unchanged**, including all 5 original users, 3 ledger entries, organisation/domain, 7 verification records and 3 sessions. Two original `auth_throttles` rows advanced their counters/window through normal authentication requests. This expected operational change is explicitly excluded from the claim of unchanged business/account history; no counter was reset to make the audit pass. Existing backup/recovery artifacts remain untouched. Backup creation was verified; a restore drill for this new backup was not executed.
+
+## Failures encountered and causes
+
+1. Initial integration helper invocation used system Python without dotenv; it failed before tests. Rerun with `backend/.venv/bin/python` successfully launched locked tests. An initial direct OpenAPI export lacked the backend module path; rerunning from backend with `PYTHONPATH=.` succeeded.
+2. First frontend type check found an undefined numeric editor value and missing generated `integer_only` fields on new questions. Corrected the editor to use numeric values and explicit field defaults. All subsequent type checks/builds passed.
+3. `docker compose exec migrate ...` failed because that one-shot job had already exited successfully. The revision command was rerun in the running backend and returned 0004. No migration reset/retry workaround was used.
+4. The final all-row unchanged assertion failed for `auth_throttles` after normal login testing. The follow-up audit checks every original row, rejects missing rows or any business/account history changes, and separately reports expected mutable throttle counters. Original users/credits were not changed by the migration.
+5. An exact `Vary == Cookie` assertion failed because CORS correctly appends `Origin`. A token-list check confirmed both the required Cookie variation and no-store header; implementation was unchanged.
+6. Browser-provider Chrome automation was unavailable; native Chrome succeeded for the directory screenshot. The next native inspection encountered user focus changes. No editor/detail/mobile screenshot, full browser hydration flow, browser-console audit or human manual acceptance is claimed.
+
+No known functional startup, database, funding-test or HTTP connectivity blocker remains. Remaining review: complete the manual phone/browser acceptance steps in [phase-2b.md](phase-2b.md), review the conservative published-definition freeze and reservation semantics, and review before further development. Existing production transport, approved institutional membership and restricted runtime-role provisioning limits remain; this local stack is not production deployment approval.
+
+---
+
+The following historical Phase 1 results are retained; their phase/revision and empty-database statements describe that earlier point in time, not the current Phase 2B state.
+
 # Phase 2A verification — 30 October 2026
 
 The passwordless decision, approved requirements, implementation inventory and manual acceptance steps are recorded in [phase-2a.md](phase-2a.md) and [authentication.md](authentication.md). This Phase 2A record supersedes older statements below that authentication is unimplemented or the current migration is 0001/0002.

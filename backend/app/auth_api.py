@@ -6,12 +6,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import auth
 from app.dev_email import DeliveryError
-from app.models import User
+from app.models import Project, ProjectReservation, User
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -42,6 +43,7 @@ class Profile(BaseModel):
     email: str
     display_name: str
     credit_balance: int
+    reserved_credits: int
 
 
 class VerificationResult(BaseModel):
@@ -89,6 +91,11 @@ def profile(session: Session, user: User) -> Profile:
         email=user.email,
         display_name=user.display_name,
         credit_balance=auth.balance(session, user),
+        reserved_credits=session.scalar(
+            select(func.coalesce(func.sum(ProjectReservation.amount), 0))
+            .join(Project, Project.id == ProjectReservation.project_id)
+            .where(Project.owner_id == user.id, ProjectReservation.release_entry_id.is_(None))
+        ),
     )
 
 

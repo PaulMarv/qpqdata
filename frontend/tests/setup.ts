@@ -5,6 +5,7 @@ vi.mock("next/navigation", () => {
   const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
   return {
     useRouter: () => router,
+    usePathname: () => "/profile",
     redirect: (url: string) => {
       throw new Error("REDIRECT:" + url);
     },

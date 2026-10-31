@@ -51,7 +51,7 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
         for sql in [
             "UPDATE credit_ledger_entries SET amount = 10",
             "DELETE FROM credit_ledger_entries",
-            "TRUNCATE credit_ledger_entries",
+            "TRUNCATE credit_ledger_entries, project_reservations",
         ]:
             with pytest.raises(DBAPIError) as rejected, engine.begin() as connection:
                 connection.execute(text(sql))
@@ -109,6 +109,9 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
         from tests.auth_cases import exercise_authentication
 
         exercise_authentication(engine, monkeypatch)
+        from tests.project_cases import exercise_projects
+
+        exercise_projects(engine, monkeypatch)
         # Tables remain for inspection; use a fresh disposable database for each run.
     finally:
         engine.dispose()

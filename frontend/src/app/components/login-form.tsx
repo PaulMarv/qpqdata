@@ -63,7 +63,7 @@ export default function LoginForm({ signup = false }: { signup?: boolean }) {
       </div>
       <button
         disabled={pending}
-        className="rounded bg-teal-800 px-5 py-3 text-white disabled:opacity-60"
+        className="rounded bg-blue-700 px-5 py-3 text-white disabled:opacity-60"
       >
         {pending
           ? "Sending…"

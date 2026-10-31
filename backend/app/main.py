@@ -14,6 +14,7 @@ from app.auth_api import router as auth_router
 from app.config import Settings
 from app.db import make_engine
 from app.dev_email_api import router as dev_email_router
+from app.project_api import router as project_router
 
 
 class HealthResponse(BaseModel):
@@ -35,11 +36,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="QPQData API", version="0.1.0", lifespan=lifespan)
     app.include_router(dev_email_router)
     app.include_router(auth_router)
+    app.include_router(project_router)
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
         response = await call_next(request)
-        if "/auth/" in request.url.path:
+        if "/auth/" in request.url.path or request.url.path.startswith("/api/v1/projects"):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Vary"] = "Cookie"
         return response
@@ -48,7 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"detail": "Invalid request."})
 
-    # Explicit local origins; credentials remain disabled until authentication is reviewed.
+    # Browser mutations use the same-origin Next.js transport, not credentialed CORS.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000"],
@@ -74,7 +76,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = connection.execute(
                     text("SELECT version_num FROM alembic_version")
                 ).scalar()
-                if revision != "0003":
+                if revision != "0004":
                     raise RuntimeError("schema unavailable")
         except (SQLAlchemyError, RuntimeError):
             return JSONResponse(

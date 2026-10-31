@@ -73,7 +73,7 @@ export default function VerifyForm({
       <button
         onClick={verify}
         disabled={done || pending}
-        className="rounded bg-teal-800 px-5 py-3 font-semibold text-white disabled:opacity-60"
+        className="rounded bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Verifying…" : "Verify email"}
       </button>

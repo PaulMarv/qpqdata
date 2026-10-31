@@ -1,6 +1,6 @@
-# QPQData — Phase 2A
+# QPQData — Phase 2B
 
-Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Image uploads, credit transfers and project approval workflows remain unimplemented.
+Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Phase 2B adds collection drafts, versioned criteria, public discovery and transactional QC reservations. Image uploads, submissions, payouts and moderation remain unimplemented.
 
 ## Start with Docker
 
@@ -85,7 +85,7 @@ Commit both generated files and review changes. Python formatting: `uv run --fro
 - `docs/authentication.md`: verified-email and organisation eligibility design.
 - `docs/verification.md`: actual check results and outstanding verification.
 
-Stop after Phase 2A for review. Collection, contribution, upload and transfer features remain outside the implemented scope.
+Stop after Phase 2B for review. Contributions, uploads, payouts and transfers remain outside the implemented scope.
 
 ## Local email verification
 
@@ -98,3 +98,9 @@ See [complete setup and manual testing steps](docs/development-email.md) for req
 Set `QPQ_AUTH_ENABLED=true` in the local development `.env`, then run `docker compose up --build -d --wait --wait-timeout 120`. Open http://localhost:3000/signup or /login. Magic links are captured by the existing Mailpit inbox; open them in the browser that requested them and explicitly confirm. Login links expire after 10 minutes. Eligible verified users receive exactly 50 QC once; real institution accounts without current approved membership evidence remain pending.
 
 [Phase 2A specification and manual acceptance](docs/phase-2a.md) · [Authentication decision](docs/authentication.md) · [Executed verification](docs/verification.md)
+
+## Phase 2B collections
+
+Browse http://localhost:3000/projects. Eligible signed-in users can create drafts at `/collections/new` and manage them through My Collections. First publication freezes the definition and reserves its image-count × QC-reward budget from available credits. Pause holds the reservation; close releases it exactly once. Migration `0004` is additive and retains existing accounts, ledger records and Mailpit configuration.
+
+[Phase 2B design, file map and complete manual testing steps](docs/phase-2b.md) · [Actual verification results](docs/verification.md)

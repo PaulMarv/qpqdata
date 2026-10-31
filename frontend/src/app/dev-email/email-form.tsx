@@ -45,7 +45,7 @@ export default function EmailForm() {
       />
       <button
         disabled={pending}
-        className="rounded bg-teal-800 px-5 py-3 font-semibold text-white disabled:opacity-60"
+        className="rounded bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Sending…" : "Register test account"}
       </button>

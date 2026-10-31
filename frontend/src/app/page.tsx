@@ -17,8 +17,8 @@ export default async function Home() {
               </Link>
             </p>
           )}
-        <section className="max-w-3xl py-20 sm:py-28">
-          <p className="mb-5 text-sm font-semibold uppercase tracking-widest text-teal-700">
+        <section className="home-hero max-w-3xl py-20 sm:py-28">
+          <p className="mb-5 text-sm font-semibold uppercase tracking-widest text-blue-700">
             A shared perspective
           </p>
           <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
@@ -29,10 +29,16 @@ export default async function Home() {
             collections together. Contribute original photographs. Support
             useful research.
           </p>
-          <p className="mt-8 border-l-2 border-teal-600 pl-4 text-sm leading-relaxed text-slate-600">
-            We’re building the foundation. Project creation, contributions, and
+          <p className="mt-8 border-l-2 border-blue-600 pl-4 text-sm leading-relaxed text-slate-600">
+            Create and explore research collections. Image contributions and
             dataset downloads are not available yet.
           </p>
+          <Link
+            href="/projects"
+            className="project-button mt-6 inline-block font-semibold"
+          >
+            Explore collection projects →
+          </Link>
         </section>
         <section
           aria-labelledby="vision"
@@ -62,7 +68,7 @@ export default async function Home() {
               <article key={number}>
                 <span
                   aria-hidden="true"
-                  className="text-sm font-mono text-teal-700"
+                  className="text-sm font-mono text-blue-700"
                 >
                   {number}
                 </span>

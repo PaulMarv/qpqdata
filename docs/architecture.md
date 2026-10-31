@@ -31,3 +31,7 @@ The explicitly authorised Mailpit harness adds one challenge table through revis
 ## Phase 2A authentication
 
 The approved passwordless decision and complete requirements are in [phase-2a.md](phase-2a.md). Revision 0003 preserves earlier schema/data while adding session/throttle storage, profile fields, explicit token purposes and welcome-grant uniqueness/checks. There are now 12 model tables. The original append-only ledger triggers remain unchanged. Sessions and backend eligibility, rather than navigation visibility, enforce access. Production deployment remains gated by real transport and membership-review configuration.
+
+## Phase 2B collections (current behavior)
+
+The historical Phase 1 limitations above are superseded for authentication and collections only. [Phase 2B](phase-2b.md) documents versioned immutable definition snapshots, lifecycle permissions, public discovery and transactional ledger reservations. Revision 0004 adds two tables (14 total), project discovery/version columns and exact reservation/release guards; it preserves the original ledger immutability and prior data. Available QC is SUM(ledger.amount), reserved QC is the sum of unreleased reservations, and total QC is their sum. No separate mutable balance is stored. Published definitions are frozen permanently; changes require a new project. No submission/upload/payout workflow is enabled.

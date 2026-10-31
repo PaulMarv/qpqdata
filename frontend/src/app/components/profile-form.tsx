@@ -43,7 +43,7 @@ export default function ProfileForm({ initialName }: { initialName: string }) {
       />
       <button
         disabled={pending}
-        className="rounded bg-teal-800 px-5 py-3 text-white"
+        className="rounded bg-blue-700 px-5 py-3 text-white"
       >
         {pending ? "Saving…" : "Save profile"}
       </button>

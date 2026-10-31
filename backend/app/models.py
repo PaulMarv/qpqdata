@@ -78,7 +78,15 @@ class Project(Record, Base):
     name: Mapped[str] = mapped_column(String(200), index=True)
     description: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), server_default="draft")
-    __table_args__ = (CheckConstraint("status = 'draft'"),)
+    current_version: Mapped[int] = mapped_column(server_default="0")
+    published_version: Mapped[int | None] = mapped_column()
+    category: Mapped[str] = mapped_column(String(40), server_default="other", index=True)
+    search_text: Mapped[str] = mapped_column(Text, server_default="")
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft', 'published', 'paused', 'closed')", name="ck_project_status"
+        ),
+    )
 
 
 class ProjectCriterion(Record, Base):
@@ -124,6 +132,7 @@ class Submission(Record, Base):
 
 class CreditLedgerEntry(Record, Base):
     __tablename__ = "credit_ledger_entries"
+    project_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("projects.id"))
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     amount: Mapped[int] = mapped_column(BigInteger)
     reason: Mapped[str] = mapped_column(String(200))
@@ -133,6 +142,17 @@ class CreditLedgerEntry(Record, Base):
     )
     __table_args__ = (
         CheckConstraint("amount <> 0"),
+        CheckConstraint(
+            "(reason NOT IN ('collection_reservation','collection_release') "
+            "AND project_id IS NULL) OR "
+            "(reason = 'collection_reservation' AND project_id IS NOT NULL "
+            "AND amount < 0 AND reversal_of_id IS NULL "
+            "AND idempotency_key = 'reservation:v1:' || CAST(project_id AS VARCHAR)) OR "
+            "(reason = 'collection_release' AND project_id IS NOT NULL "
+            "AND amount > 0 AND reversal_of_id IS NOT NULL "
+            "AND idempotency_key = 'release:v1:' || CAST(project_id AS VARCHAR))",
+            name="ck_collection_ledger",
+        ),
         CheckConstraint(
             "reason <> 'welcome_grant' OR (amount = 50 AND reversal_of_id IS NULL "
             "AND idempotency_key = 'welcome:v1:' || CAST(user_id AS VARCHAR))",
@@ -183,3 +203,27 @@ class AuthThrottle(Base):
     key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     attempts: Mapped[int] = mapped_column()
+
+
+class ProjectVersion(Record, Base):
+    __tablename__ = "project_versions"
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    version: Mapped[int] = mapped_column()
+    definition: Mapped[dict[str, Any]] = mapped_column(JSON)
+    __table_args__ = (
+        UniqueConstraint("project_id", "version"),
+        CheckConstraint("version > 0", name="ck_project_version_positive"),
+    )
+
+
+class ProjectReservation(Record, Base):
+    __tablename__ = "project_reservations"
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"), unique=True)
+    amount: Mapped[int] = mapped_column(BigInteger)
+    debit_entry_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("credit_ledger_entries.id"), unique=True
+    )
+    release_entry_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("credit_ledger_entries.id"), unique=True
+    )
+    __table_args__ = (CheckConstraint("amount > 0", name="ck_reservation_positive"),)

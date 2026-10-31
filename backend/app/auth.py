@@ -119,6 +119,7 @@ def request_link(
 
 
 def grant_welcome(session: Session, user: User, settings: Settings) -> None:
+    session.get(User, user.id, with_for_update=True)
     if not eligible(session, settings, user):
         raise AuthError("Account eligibility unavailable.", 403)
     key = f"welcome:v1:{user.id}"
@@ -240,7 +241,7 @@ def authenticate(
         raise AuthError("Log in to continue.")
     if mutation and (not csrf or not hmac.compare_digest(record.csrf_hash, digest(csrf))):
         raise AuthError("Request rejected.", 403)
-    user = session.get(User, record.user_id)
+    user = session.get(User, record.user_id, with_for_update=True)
     if user is None or (check_eligibility and not eligible(session, settings, user)):
         raise AuthError("Account eligibility unavailable.", 403)
     record.last_seen_at = now

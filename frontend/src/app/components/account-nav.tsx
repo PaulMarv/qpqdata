@@ -1,13 +1,43 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 type User = { email: string; display_name: string };
 export default function AccountNav({ user }: { user: User | null }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const menu = useRef<HTMLDetailsElement>(null);
+  const trigger = useRef<HTMLElement>(null);
+  const pathname = usePathname();
+  useEffect(() => {
+    function outside(event: PointerEvent) {
+      if (menu.current && !menu.current.contains(event.target as Node))
+        menu.current.open = false;
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape" && menu.current?.open) {
+        menu.current.open = false;
+        trigger.current?.focus();
+      }
+    }
+    function focusOutside(event: FocusEvent) {
+      if (menu.current && !menu.current.contains(event.target as Node))
+        menu.current.open = false;
+    }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", escape);
+    document.addEventListener("focusin", focusOutside);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("keydown", escape);
+      document.removeEventListener("focusin", focusOutside);
+    };
+  }, []);
+  useEffect(() => {
+    if (menu.current) menu.current.open = false;
+  }, [pathname, user]);
   if (!user)
     return (
       <nav aria-label="Account" className="flex gap-5">
@@ -35,16 +65,17 @@ export default function AccountNav({ user }: { user: User | null }) {
     }
   }
   return (
-    <details className="relative">
+    <details ref={menu} className="profile-dropdown relative">
       <summary
+        ref={trigger}
         aria-label="Open profile menu"
-        className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full bg-teal-800 font-semibold text-white"
+        className="profile-avatar flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full font-semibold text-white"
       >
         {initials}
       </summary>
       <nav
         aria-label="Profile menu"
-        className="absolute right-0 z-20 mt-3 w-56 rounded-lg border border-slate-200 bg-white p-4 shadow-lg"
+        className="profile-popover absolute right-0 z-20 mt-3 w-64 bg-white p-2"
       >
         {[
           ["My Profile", "/profile"],
@@ -55,7 +86,10 @@ export default function AccountNav({ user }: { user: User | null }) {
           <Link
             key={url}
             href={url}
-            className="block rounded p-3 hover:bg-teal-50"
+            onClick={() => {
+              if (menu.current) menu.current.open = false;
+            }}
+            className="block rounded-xl p-3"
           >
             {label}
           </Link>
@@ -63,7 +97,7 @@ export default function AccountNav({ user }: { user: User | null }) {
         <button
           onClick={logout}
           disabled={pending}
-          className="w-full rounded p-3 text-left hover:bg-teal-50"
+          className="profile-signout w-full rounded-xl p-3 text-left"
         >
           {pending ? "Signing out…" : "Sign Out"}
         </button>

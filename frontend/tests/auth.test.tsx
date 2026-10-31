@@ -94,3 +94,59 @@ it("blocks cross-origin authentication mutations", async () => {
   );
   expect(response.status).toBe(403);
 });
+
+it("dismisses the profile dropdown on outside pointer interaction", () => {
+  render(
+    <>
+      <AccountNav
+        user={{ email: "student@university.test", display_name: "Student" }}
+      />
+      <button>Outside</button>
+    </>,
+  );
+  const details = screen
+    .getByLabelText("Open profile menu")
+    .closest("details")!;
+  details.open = true;
+  fireEvent.pointerDown(screen.getByRole("link", { name: "My Profile" }));
+  expect(details.open).toBe(true);
+  fireEvent.pointerDown(screen.getByRole("button", { name: "Outside" }));
+  expect(details.open).toBe(false);
+});
+it("dismisses with Escape and returns keyboard focus to the avatar", () => {
+  render(
+    <AccountNav
+      user={{ email: "student@university.test", display_name: "Student" }}
+    />,
+  );
+  const avatar = screen.getByLabelText("Open profile menu");
+  const details = avatar.closest("details")!;
+  details.open = true;
+  screen.getByRole("link", { name: "My Collections" }).focus();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(details.open).toBe(false);
+  expect(avatar).toHaveFocus();
+});
+it("closes the dropdown on link selection or focus leaving it", () => {
+  render(
+    <>
+      <AccountNav
+        user={{ email: "student@university.test", display_name: "Student" }}
+      />
+      <button>Outside</button>
+    </>,
+  );
+  const details = screen
+    .getByLabelText("Open profile menu")
+    .closest("details")!;
+  details.open = true;
+  const profileLink = screen.getByRole("link", { name: "My Profile" });
+  profileLink.addEventListener("click", (event) => event.preventDefault(), {
+    once: true,
+  });
+  fireEvent.click(profileLink);
+  expect(details.open).toBe(false);
+  details.open = true;
+  screen.getByRole("button", { name: "Outside" }).focus();
+  expect(details.open).toBe(false);
+});

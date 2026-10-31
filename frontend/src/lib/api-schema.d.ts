@@ -123,6 +123,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Projects */
+        get: operations["listProjects"];
+        put?: never;
+        /** Create Project */
+        post: operations["createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Projects */
+        get: operations["listMyProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project */
+        get: operations["getProject"];
+        /** Edit Project */
+        put: operations["editProject"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Transition Project */
+        post: operations["transitionProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health/live": {
         parameters: {
             query?: never;
@@ -161,6 +231,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** FormDefinition */
+        FormDefinition: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Questions */
+            questions?: components["schemas"]["Question"][];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -179,6 +260,18 @@ export interface components {
              * @constant
              */
             service: "qpqdata-api";
+        };
+        /** Label */
+        Label: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
         };
         /** LinkRequest */
         LinkRequest: {
@@ -218,11 +311,187 @@ export interface components {
             display_name: string;
             /** Credit Balance */
             credit_balance: number;
+            /** Reserved Credits */
+            reserved_credits: number;
         };
         /** ProfileUpdate */
         ProfileUpdate: {
             /** Display Name */
             display_name: string;
+        };
+        /** ProjectDefinition */
+        ProjectDefinition: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Research Purpose
+             * @default
+             */
+            research_purpose: string;
+            /**
+             * Category
+             * @default other
+             * @enum {string}
+             */
+            category: "science" | "education" | "environment" | "health" | "technology" | "society" | "other";
+            /**
+             * Image Count
+             * @default 20
+             */
+            image_count: number;
+            /**
+             * Reward Per Image
+             * @default 1
+             */
+            reward_per_image: number;
+            /**
+             * Instructions
+             * @default
+             */
+            instructions: string;
+            /**
+             * Accepted Content
+             * @default
+             */
+            accepted_content: string;
+            /**
+             * Prohibited Content
+             * @default
+             */
+            prohibited_content: string;
+            /**
+             * Min Width
+             * @default 640
+             */
+            min_width: number;
+            /**
+             * Min Height
+             * @default 640
+             */
+            min_height: number;
+            /** Allowed Formats */
+            allowed_formats?: ("JPEG" | "PNG" | "WEBP")[];
+            /** Closing Date */
+            closing_date?: string | null;
+            /**
+             * Licence
+             * @default
+             * @enum {string}
+             */
+            licence: "" | "CC0-1.0" | "CC-BY-4.0" | "CC-BY-SA-4.0" | "custom";
+            /**
+             * Reuse Terms
+             * @default
+             */
+            reuse_terms: string;
+            /** Keywords */
+            keywords?: string[];
+            /** Labels */
+            labels?: components["schemas"]["Label"][];
+            criteria?: components["schemas"]["FormDefinition"];
+        };
+        /** ProjectEdit */
+        ProjectEdit: {
+            /** Expected Version */
+            expected_version: number;
+            definition: components["schemas"]["ProjectDefinition"];
+        };
+        /** ProjectPage */
+        ProjectPage: {
+            /** Items */
+            items: components["schemas"]["ProjectView"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Page Size */
+            page_size: number;
+        };
+        /** ProjectView */
+        ProjectView: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "published" | "paused" | "closed";
+            /** Version */
+            version: number;
+            /** Published Version */
+            published_version: number | null;
+            definition: components["schemas"]["ProjectDefinition"];
+            /** Reserved Credits */
+            reserved_credits: number;
+            /** Budget */
+            budget: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Closing Date Passed */
+            closing_date_passed: boolean;
+        };
+        /** Question */
+        Question: {
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "single_choice" | "multiple_choice" | "short_text" | "number" | "yes_no";
+            /**
+             * Required
+             * @default false
+             */
+            required: boolean;
+            /** Options */
+            options?: string[];
+            /** Min Length */
+            min_length?: number | null;
+            /** Max Length */
+            max_length?: number | null;
+            /** Min Value */
+            min_value?: number | null;
+            /** Max Value */
+            max_value?: number | null;
+            /**
+             * Integer Only
+             * @default false
+             */
+            integer_only: boolean;
+            /** Min Selections */
+            min_selections?: number | null;
+            /** Max Selections */
+            max_selections?: number | null;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -236,6 +505,16 @@ export interface components {
              * Format: password
              */
             token: string;
+        };
+        /** Transition */
+        Transition: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "published" | "paused" | "closed";
+            /** Expected Version */
+            expected_version: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -476,6 +755,209 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Message"];
+                };
+            };
+        };
+    };
+    listProjects: {
+        parameters: {
+            query?: {
+                q?: string;
+                category?: ("science" | "education" | "environment" | "health" | "technology" | "society" | "other") | null;
+                status?: ("draft" | "published" | "paused" | "closed") | null;
+                sort?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectDefinition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listMyProjects: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                status?: ("draft" | "published" | "paused" | "closed") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transitionProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Transition"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
