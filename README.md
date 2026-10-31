@@ -1,6 +1,6 @@
-# QPQData — Phase 1
+# QPQData — Phase 2A
 
-Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. This phase provides the foundation only: no authentication flow, image uploads, credit transfers or project approval workflows.
+Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Image uploads, credit transfers and project approval workflows remain unimplemented.
 
 ## Start with Docker
 
@@ -12,11 +12,11 @@ Requirements: Docker Engine/Desktop with Compose v2. Start Docker Desktop first.
 4. Run `docker compose up --build`.
 5. Open http://localhost:3000, API docs http://localhost:8000/docs, liveness http://localhost:8000/api/v1/health/live and readiness http://localhost:8000/api/v1/health/ready.
 
-The migration service must finish before the backend starts. PostgreSQL and API ports bind to loopback. If port 5432 is occupied, change only the host port mapping; the internal Compose URL remains `db:5432`. Stop with `docker compose down`; it preserves the named database volume. No real data is seeded. This is local development configuration, not a production deployment.
+The migration service must finish before the backend starts. PostgreSQL and API ports bind to loopback. If port 5432 is occupied, set `POSTGRES_HOST_PORT` in `.env` (for example `55432`); the internal Compose URL remains `db:5432`. Stop with `docker compose down`; it preserves the named database volume. No real data is seeded. This is local development configuration, not a production deployment.
 
 ## Run applications on the host
 
-Requirements: Python 3.12+, uv 0.13.1, Node.js 22 LTS and npm. Use Node 22 rather than Node 21. Start PostgreSQL with `docker compose up -d db` after configuring root `.env`.
+Requirements: Python 3.12+, uv 0.13.1, Node.js 22 LTS and npm. Use Node 22 rather than Node 21. Start PostgreSQL with `docker compose up -d db` after configuring root `.env`. If `POSTGRES_HOST_PORT` differs from 5432, use that port in host-side database URLs.
 
 Backend (from `backend/`):
 
@@ -85,4 +85,16 @@ Commit both generated files and review changes. Python formatting: `uv run --fro
 - `docs/authentication.md`: verified-email and organisation eligibility design.
 - `docs/verification.md`: actual check results and outstanding verification.
 
-Stop at Phase 1 for foundation review. Real authentication, data collection, approval and credit services need separate implementation and security review.
+Stop after Phase 2A for review. Collection, contribution, upload and transfer features remain outside the implemented scope.
+
+## Local email verification
+
+Open http://localhost:3000/dev-email and register `student@university.test`; inspect the message at http://localhost:8025, open its link, then click **Verify email**. Other exact `university.test` addresses are supported. This development-only harness grants no session or production eligibility.
+
+See [complete setup and manual testing steps](docs/development-email.md) for required flags, reuse, expiry, rejection tests, safety boundaries and database confirmation. Migration `0002` adds the challenge table; the existing volume and ledger guards are preserved.
+
+## Phase 2A accounts
+
+Set `QPQ_AUTH_ENABLED=true` in the local development `.env`, then run `docker compose up --build -d --wait --wait-timeout 120`. Open http://localhost:3000/signup or /login. Magic links are captured by the existing Mailpit inbox; open them in the browser that requested them and explicitly confirm. Login links expire after 10 minutes. Eligible verified users receive exactly 50 QC once; real institution accounts without current approved membership evidence remain pending.
+
+[Phase 2A specification and manual acceptance](docs/phase-2a.md) · [Authentication decision](docs/authentication.md) · [Executed verification](docs/verification.md)

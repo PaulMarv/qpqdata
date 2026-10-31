@@ -8,15 +8,15 @@ export default async function Home() {
   );
   return (
     <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10">
-      <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-6">
-        <Link href="/" className="text-xl font-bold tracking-tight">
-          QPQ<span className="text-teal-700">Data</span>
-        </Link>
-        <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-900">
-          Phase 1 · Foundation
-        </span>
-      </header>
       <main id="main">
+        {process.env.QPQ_ENVIRONMENT === "development" &&
+          process.env.QPQ_DEV_EMAIL_ENABLED === "true" && (
+            <p className="mt-6">
+              <Link className="underline" href="/dev-email">
+                Test local email verification
+              </Link>
+            </p>
+          )}
         <section className="max-w-3xl py-20 sm:py-28">
           <p className="mb-5 text-sm font-semibold uppercase tracking-widest text-teal-700">
             A shared perspective
@@ -30,8 +30,8 @@ export default async function Home() {
             useful research.
           </p>
           <p className="mt-8 border-l-2 border-teal-600 pl-4 text-sm leading-relaxed text-slate-600">
-            We’re building the foundation. Project creation, contributions,
-            accounts, and dataset downloads are not available yet.
+            We’re building the foundation. Project creation, contributions, and
+            dataset downloads are not available yet.
           </p>
         </section>
         <section

@@ -5,7 +5,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-qpqdata}
       POSTGRES_DB: ${POSTGRES_DB:-qpqdata}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    ports: ["127.0.0.1:5432:5432"]
+    ports: ["127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"]
     volumes: ["postgres_data:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -20,12 +20,39 @@ services:
       db: {condition: service_healthy}
     command: [".venv/bin/alembic", "upgrade", "head"]
     restart: "no"
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    ports: ["127.0.0.1:8025:8025"]
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  dev-seed:
+    build: ./backend
+    environment:
+      QPQ_DATABASE_URL: ${QPQ_DATABASE_URL:?Set QPQ_DATABASE_URL in .env}
+      QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
+      QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: [".venv/bin/python", "-m", "app.dev_seed"]
+    restart: "no"
   backend:
     build: ./backend
     environment:
       QPQ_DATABASE_URL: ${QPQ_DATABASE_URL:?Set QPQ_DATABASE_URL in .env}
+      QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
+      QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
+      QPQ_FRONTEND_URL: ${QPQ_FRONTEND_URL:-http://localhost:3000}
+      QPQ_AUTH_ENABLED: ${QPQ_AUTH_ENABLED:-false}
+      QPQ_SMTP_HOST: mailpit
+      QPQ_SMTP_PORT: 1025
+      QPQ_VERIFICATION_TTL_SECONDS: ${QPQ_VERIFICATION_TTL_SECONDS:-900}
     depends_on:
       migrate: {condition: service_completed_successfully}
+      dev-seed: {condition: service_completed_successfully}
+      mailpit: {condition: service_healthy}
     ports: ["127.0.0.1:8000:8000"]
     healthcheck:
       test: ["CMD", ".venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready', timeout=3)"]
@@ -36,6 +63,9 @@ services:
     build: ./frontend
     environment:
       QPQ_API_INTERNAL_URL: http://backend:8000
+      QPQ_ENVIRONMENT: ${QPQ_ENVIRONMENT:-production}
+      QPQ_DEV_EMAIL_ENABLED: ${QPQ_DEV_EMAIL_ENABLED:-false}
+      QPQ_FRONTEND_URL: ${QPQ_FRONTEND_URL:-http://localhost:3000}
     ports: ["127.0.0.1:3000:3000"]
     depends_on:
       backend: {condition: service_healthy}

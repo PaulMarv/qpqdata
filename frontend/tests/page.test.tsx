@@ -12,6 +12,6 @@ it("renders the phase boundary and accessible service status", async () => {
   expect(screen.getByRole("main")).toHaveAttribute("id", "main");
   expect(screen.getByRole("status")).toHaveTextContent("API: unavailable");
   expect(
-    screen.getByText(/accounts, and dataset downloads are not available/),
+    screen.getByText(/and dataset downloads are not available/),
   ).toBeVisible();
 });

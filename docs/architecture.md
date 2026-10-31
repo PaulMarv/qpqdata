@@ -23,3 +23,11 @@ Compose binds ports to loopback and requires an explicitly selected password. Da
 Compose runs migrations once through a separate service before backend startup. Never create tables from ORM metadata at startup. Initial migration is frozen and independent of application models; subsequent changes require new revisions. Downgrade refuses destructive rollback. A named volume persists database state; never use `docker compose down -v` unless explicitly choosing to destroy local data. Local DB port conflicts may be resolved by changing the host-side port and host URL.
 
 Authentication and deployment remain review gates. No real user data is seeded, no external service credentials are needed, and no production readiness is claimed.
+
+## Development email follow-up
+
+The explicitly authorised Mailpit harness adds one challenge table through revision `0002`, with no changes to frozen revision `0001` or ledger guards. The schema now has ten model tables. Production authentication remains disabled. See [development email testing](development-email.md) for exact environment gates, transport and token handling, fixture scope, manual steps and limits. Its activation message records development mailbox verification only; no membership or session is created.
+
+## Phase 2A authentication
+
+The approved passwordless decision and complete requirements are in [phase-2a.md](phase-2a.md). Revision 0003 preserves earlier schema/data while adding session/throttle storage, profile fields, explicit token purposes and welcome-grant uniqueness/checks. There are now 12 model tables. The original append-only ledger triggers remain unchanged. Sessions and backend eligibility, rather than navigation visibility, enforce access. Production deployment remains gated by real transport and membership-review configuration.

@@ -6,8 +6,10 @@ from pathlib import Path
 
 import pytest
 from alembic import command
+from alembic.autogenerate import compare_metadata
 from alembic.config import Config
-from sqlalchemy import inspect, select, text
+from alembic.migration import MigrationContext
+from sqlalchemy import func, inspect, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -29,6 +31,7 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
         command.upgrade(Config(str(Path("alembic.ini"))), "head")
         with engine.connect() as connection:
             assert set(Base.metadata.tables) <= set(inspect(connection).get_table_names())
+            assert compare_metadata(MigrationContext.configure(connection), Base.metadata) == []
         with Session(engine) as session, session.begin():
             user = User(
                 identity_issuer="https://issuer.example",
@@ -50,10 +53,62 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch) -> None:
             "DELETE FROM credit_ledger_entries",
             "TRUNCATE credit_ledger_entries",
         ]:
-            with pytest.raises(DBAPIError), engine.begin() as connection:
+            with pytest.raises(DBAPIError) as rejected, engine.begin() as connection:
                 connection.execute(text(sql))
+            assert rejected.value.orig.sqlstate == "P0001"
         with engine.connect() as connection:
             assert connection.execute(select(CreditLedgerEntry.amount)).scalar_one() == 5
+        with engine.connect() as connection:
+            original = connection.execute(select(CreditLedgerEntry.__table__)).mappings().one()
+
+        def reject_entry(expected_state: str, **overrides: object) -> None:
+            values = {
+                "id": uuid.uuid4(),
+                "user_id": original["user_id"],
+                "amount": 1,
+                "reason": "synthetic constraint test",
+                "idempotency_key": str(uuid.uuid4()),
+            }
+            values.update(overrides)
+            with pytest.raises(DBAPIError) as rejected, engine.begin() as connection:
+                connection.execute(CreditLedgerEntry.__table__.insert().values(**values))
+            assert rejected.value.orig.sqlstate == expected_state
+
+        reject_entry("23514", amount=0)
+        reject_entry("23505", idempotency_key=original["idempotency_key"])
+        reject_entry("23503", user_id=uuid.uuid4())
+        reject_entry("23503", reversal_of_id=uuid.uuid4())
+        self_reference = uuid.uuid4()
+        reject_entry("23514", id=self_reference, reversal_of_id=self_reference)
+        with engine.begin() as connection:
+            connection.execute(
+                CreditLedgerEntry.__table__.insert().values(
+                    user_id=original["user_id"],
+                    amount=-5,
+                    reason="synthetic compensation",
+                    idempotency_key=str(uuid.uuid4()),
+                    reversal_of_id=original["id"],
+                )
+            )
+        reject_entry("23505", reversal_of_id=original["id"])
+        with engine.connect() as connection:
+            assert (
+                connection.execute(select(func.count()).select_from(CreditLedgerEntry)).scalar()
+                == 2
+            )
+            assert connection.execute(select(func.sum(CreditLedgerEntry.amount))).scalar() == 0
+            assert (
+                connection.execute(
+                    select(CreditLedgerEntry.amount).where(CreditLedgerEntry.id == original["id"])
+                ).scalar_one()
+                == 5
+            )
+        from tests.dev_email_cases import exercise_verification
+
+        exercise_verification(engine, monkeypatch)
+        from tests.auth_cases import exercise_authentication
+
+        exercise_authentication(engine, monkeypatch)
         # Tables remain for inspection; use a fresh disposable database for each run.
     finally:
         engine.dispose()
