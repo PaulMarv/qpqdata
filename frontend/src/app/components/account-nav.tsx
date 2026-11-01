@@ -105,8 +105,18 @@ export default function AccountNav({ user }: { user: User | null }) {
   if (!activeUser)
     return (
       <nav aria-label="Account" className="flex items-center gap-4 sm:gap-8">
-        <Link href="/login">Log in</Link>
-        <Link href="/signup">Sign up</Link>
+        <Link
+          href="/login"
+          aria-current={pathname === "/login" ? "page" : undefined}
+        >
+          Log in
+        </Link>
+        <Link
+          href="/signup"
+          aria-current={pathname === "/signup" ? "page" : undefined}
+        >
+          Sign up
+        </Link>
       </nav>
     );
   const initials = (activeUser.display_name || activeUser.email)
@@ -159,6 +169,11 @@ export default function AccountNav({ user }: { user: User | null }) {
             onClick={() => {
               if (menu.current) menu.current.open = false;
             }}
+            aria-current={
+              pathname === url || pathname.startsWith(url + "/")
+                ? "page"
+                : undefined
+            }
             className="block rounded-xl p-3"
           >
             {label}

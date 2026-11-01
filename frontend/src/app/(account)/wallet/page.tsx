@@ -27,14 +27,17 @@ export default async function Wallet({
         <p role="alert">Wallet unavailable. Try again.</p>
       ) : (
         <>
-          <section className="project-panel">
-            <p className="text-3xl font-semibold">
-              {data.available} QC available
-            </p>
-            <p>
-              {data.reserved} QC reserved · {data.available + data.reserved} QC
-              total
-            </p>
+          <section className="project-panel wallet-summary">
+            <span className="wallet-eyebrow">YOUR QPQ CREDITS</span>
+            <p className="wallet-balance">{data.available} QC available</p>
+            <div className="wallet-stats">
+              <span>
+                {data.reserved} QC <small>Reserved for collections</small>
+              </span>
+              <span>
+                {data.available + data.reserved} QC <small>Total credits</small>
+              </span>
+            </div>
             <p>
               Rewards come from the collection’s held credits. Closing returns
               only unspent QC. Eligible accounts receive the welcome grant once.
@@ -45,7 +48,11 @@ export default async function Wallet({
             <article key={e.id} className="project-panel">
               <div className="project-result-top">
                 <span>{e.reason.replaceAll("_", " ")}</span>
-                <strong>
+                <strong
+                  className={
+                    e.amount > 0 ? "credit-badge" : "credit-badge credit-debit"
+                  }
+                >
                   {e.amount > 0 ? "+" : ""}
                   {e.amount} QC
                 </strong>

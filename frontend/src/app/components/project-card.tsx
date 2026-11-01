@@ -9,34 +9,53 @@ export function ProjectCard({
 }) {
   const d = p.definition;
   return (
-    <article className="project-result">
-      <div className="project-result-top">
-        <span className="project-tag">
-          {p.mode === "personal" ? "Personal · " + p.visibility : p.status}
-        </span>
-        <span>{d.category}</span>
+    <article className="project-result collection-card">
+      <div className="card-content">
+        <div className="card-badges">
+          <span className="project-tag">
+            {p.mode === "personal" ? "Personal · " + p.visibility : p.status}
+          </span>
+          <span className="category-chip">{d.category}</span>
+        </div>
+        <h2 className="card-title">
+          <Link href={"/projects/" + p.id}>{d.name}</Link>
+        </h2>
+        <p className="card-description">
+          {d.description || "Draft description pending."}
+        </p>
+        <p className="project-id card-reference">Project ID {p.id}</p>
       </div>
-      <h2>
-        <Link href={"/projects/" + p.id}>{d.name}</Link>
-      </h2>
-      <p>{d.description || "Draft description pending."}</p>
-      <p className="project-id">ID {p.id}</p>
-      <div className="project-result-top">
-        <span>
-          {d.image_count} images ·{" "}
-          {p.mode === "personal"
-            ? "0 QC"
-            : `${d.reward_per_image} QC / community image`}
-        </span>
+      <div className="card-summary">
+        <dl className="card-metrics">
+          <div>
+            <dt>
+              {p.mode === "personal" ? "Image capacity" : "Images requested"}
+            </dt>
+            <dd>{d.image_count.toLocaleString("en-GB")}</dd>
+          </div>
+          <div>
+            <dt>
+              {p.mode === "personal" ? "Collection cost" : "Community reward"}
+            </dt>
+            <dd className="card-reward">
+              <span className="credit-badge">
+                {p.mode === "personal"
+                  ? "0 QC"
+                  : `${d.reward_per_image} QC / community image`}
+              </span>
+            </dd>
+          </div>
+        </dl>
         <Link
-          className="project-link"
+          className="card-action"
           href={
             owner && p.status === "draft"
               ? "/collections/" + p.id + "/edit"
               : "/projects/" + p.id
           }
         >
-          {owner && p.status === "draft" ? "Edit draft" : "View project"} →
+          {owner && p.status === "draft" ? "Edit draft" : "View project"}{" "}
+          <span aria-hidden="true">→</span>
         </Link>
       </div>
     </article>

@@ -327,7 +327,10 @@ body {
 }
 h1,
 h2,
-h3,
+h3 {
+  font-family: var(--font-body), sans-serif;
+  letter-spacing: -0.025em;
+}
 .brand {
   font-family: var(--font-heading), sans-serif;
   letter-spacing: -0.035em;

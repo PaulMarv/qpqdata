@@ -100,36 +100,57 @@ export default async function Library({
         </section>
       ) : (
         data.items.map((d) => (
-          <article key={d.id} className="project-panel">
-            <div className="project-result-top">
-              <h2>
-                <Link className="project-link" href={"/datasets/" + d.id}>
-                  {d.name}
-                </Link>
+          <article
+            key={d.id}
+            className="project-panel dataset-card collection-card"
+          >
+            <div className="card-content">
+              <div className="card-badges">
+                <span className="category-chip">{d.category}</span>
+                <span className="project-tag">Free · 0 QC</span>
+              </div>
+              <h2 className="card-title">
+                <Link href={"/datasets/" + d.id}>{d.name}</Link>
               </h2>
-              <span className="project-tag">Free · 0 QC</span>
+              <p className="card-description">{d.description}</p>
+              <div className="card-labels">
+                <span className="card-field-label">
+                  Labels · Criteria v{d.criteria_version}
+                </span>
+                <p>
+                  {d.labels.map((l) => l.name).join(", ") || "No named labels"}
+                </p>
+              </div>
+              <p className="project-id card-reference">
+                Collection {d.collection_id}
+              </p>
             </div>
-            <p>{d.description}</p>
-            <p className="project-id">Collection {d.collection_id}</p>
-            <p>
-              {d.category} · {d.image_count} available approved images ·{" "}
-              {d.licence}
-            </p>
-            <p>
-              {d.labels.map((l) => l.name).join(", ")} · Criteria v
-              {d.criteria_version}
-            </p>
-            <p>
-              Updated{" "}
-              {new Date(d.updated_at).toLocaleDateString("en-GB", {
-                timeZone: "UTC",
-              })}
-            </p>
-            <p>
-              {d.versions.some((v) => v.downloadable)
-                ? "ZIP available"
-                : "Preparation or owner publication required"}
-            </p>
+            <div className="card-summary">
+              <dl className="card-metrics">
+                <div>
+                  <dt>Available approved images</dt>
+                  <dd>{d.image_count.toLocaleString("en-GB")}</dd>
+                </div>
+                <div>
+                  <dt>Dataset licence</dt>
+                  <dd className="card-detail-value">{d.licence}</dd>
+                </div>
+              </dl>
+              <p className="card-availability">
+                {d.versions.some((v) => v.downloadable)
+                  ? "ZIP available"
+                  : "Preparation or owner publication required"}
+              </p>
+              <Link className="card-action" href={"/datasets/" + d.id}>
+                View dataset <span aria-hidden="true">→</span>
+              </Link>
+              <p className="card-updated">
+                Updated{" "}
+                {new Date(d.updated_at).toLocaleDateString("en-GB", {
+                  timeZone: "UTC",
+                })}
+              </p>
+            </div>
           </article>
         ))
       )}

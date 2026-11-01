@@ -1,3 +1,64 @@
+# Custom linked-frame logo — 1 November 2026
+
+Replaced the plain navbar wordmark with a reusable Brand component: original vector mark with two linked rounded Q/image frames, navy/blue fills and a small mint accent; paired with heavier QPQ and lighter Data lettering. Decorative SVG is hidden from assistive technology and the home link has an explicit accessible label. Sizes adapt for smaller screens; hover tilt is gated by hover capability and reduced-motion preference. No image service, remote asset or new dependency.
+
+Executed **86 frontend tests**, ESLint, TypeScript, Prettier, whitespace checks and production Docker build successfully. Recreated frontend is healthy; Chrome desktop screenshot confirmed logo rendering in the existing navbar. Physical mobile and broader brand acceptance remain manual. No backend or stored-data changes.
+
+---
+
+# Contained navigation and drawn active accent — 1 November 2026
+
+Kept the header background full-width while containing logo/navigation within a centred 1100px inner layout. Replaced the straight underline with an original embedded SVG double-curve accent, fixed at 30px and centred under each active label. Hover uses a smaller, softer version with restrained rotation/scale; existing reduced-motion overrides and aria-current remain. No external asset or dependency was added.
+
+Verified: **86 frontend tests**, ESLint, TypeScript, Prettier, production Docker build and whitespace checks passed. Frontend recreated successfully and healthy. Chrome desktop screenshot confirmed the compact inner layout and short curved active mark. Physical mobile acceptance remains manual. No backend or stored-data changes.
+
+---
+
+# Full-width navbar and underline refinement — 1 November 2026
+
+Removed the header max-width and centred-container constraint so the navbar spans the viewport. Replaced main-navigation pills with a short rounded blue underline; hover reveals a softer, shorter line. Removed active account-pill/outline decoration while retaining keyboard focus, aria-current, nested-route matching and reduced-motion handling.
+
+Executed: **86 frontend tests passed**, ESLint, TypeScript, Prettier, whitespace checks and production Docker build passed. Recreated the frontend from the completed image; service healthy. Chrome desktop screenshot confirmed edge-to-edge header and underline without a pill. Physical mobile checks remain manual. No backend or data changes.
+
+---
+
+# Navbar interaction and active states — 1 November 2026
+
+Added client-side SiteNav with pathname-aware Explore/Datasets selection, including nested detail/capture routes. Active links have a tinted pill, heavier text, border and blue inset underline, plus aria-current. Hover/press feedback, 44px minimum targets, existing keyboard focus outlines and reduced-motion overrides are retained. Account links and profile-menu destinations also show current-page state without changing session handling or guest/authenticated visibility.
+
+Node 22 frontend suite: **86 passed**, including seven new navigation route cases for exact matches, nested pages, homepage, unrelated routes and prefix collisions. ESLint, TypeScript, Prettier and whitespace checks passed. Production Docker build passed; restarted frontend is healthy. Chrome desktop inspection verified the Datasets active pill and its switch to Explore after navigation. Physical mobile and authenticated profile-menu visual acceptance remain manual checks. No backend or database changes.
+
+---
+
+# Application hierarchy and balanced cards — 1 November 2026
+
+Reworked collection and dataset discovery cards into a responsive content column and contrasting summary panel. Titles/descriptions/labels stay in the content column; requested/available image counts, QC rewards or licence, availability and actions occupy the summary. Full identifiers remain visible as secondary references. Below 720px the panel stacks; below 380px its metrics use one column. No information is truncated or made dependent on hover. Application headings, facts and card titles now have stronger weight and explicit size hierarchy; supporting text uses quieter, readable colours. Kept presentation rules in `styles/cards.css`.
+
+Frontend suite: **79 passed**, plus ESLint, strict TypeScript, Prettier and whitespace checks passed. Initial suite had one failure because the ID assertion expected the old label; updated it to the clearer Project ID label and reran successfully. Production Docker build passed and the restarted frontend became healthy. Chrome desktop visual inspection confirmed the two-column collection and dataset cards and stronger hierarchy. Physical mobile layout and screen-reader acceptance remain manual checks. No API, credit, database or storage changes; backend tests were not repeated for this presentation-only work.
+
+---
+
+# Homepage content and typography review — 1 November 2026
+
+Reviewed current homepage against the implemented personal collection, owner/community contribution and dataset policies. Updated the hero and three feature cards to describe private-by-default, zero-QC personal collections and private exports; approved community rewards versus zero-QC owner images; and explicitly published public datasets with free downloads subject to licence terms. Updated site description accordingly.
+
+Space Grotesk now applies to the logo and homepage headings, with a blue, lighter-weight hero emphasis. Application headings and wallet numbers use Manrope for a quieter reading experience; existing body/form typography remains Manrope.
+
+Executed frontend regression suite: **79 passed**. ESLint, strict TypeScript, Prettier and whitespace checks passed. The homepage regression assertion now covers the implemented private/free options. Production Docker build passed and the deployed frontend became healthy. Chrome desktop inspection confirmed the refreshed homepage copy and two-tone headline. Physical mobile and authenticated-screen typography acceptance remain manual checks. No backend, data, schema or ledger changes.
+
+---
+
+# Frontend visual polish — 1 November 2026
+
+Added a dedicated `frontend/src/app/styles/surfaces.css` layer for shared panel shadows, blue gradients, mint credit pills, lavender category chips, richer inset surfaces, pagination and hover/focus feedback. Updated homepage hierarchy and feature cards, collection reward badges, dataset cards and wallet summary/transaction badges. Preserved existing typography, forms, authentication and credit rules. Motion is restrained, hover lift is restricted to hover-capable devices with no reduced-motion preference, and keyboard focus indicators remain available.
+
+- Node 22 container: **79 frontend tests passed**, ESLint, strict TypeScript and full Prettier check passed. Production Docker build passed; deployed frontend became healthy.
+- Initial test run: 78 passed, one failed because the homepage test still asserted that downloads were unavailable. Corrected the stale homepage copy and test to reflect the implemented free dataset library; final suite passed. Initial CSS append used an incorrect relative path and made no CSS change; corrected before checks/build.
+- Chrome desktop visual inspection confirmed the deployed homepage, dataset library, collection cards, category chips and QC badges render successfully. Authenticated wallet appearance, physical mobile layout and screen-reader acceptance remain manual checks; no claim of those checks passing is made.
+- No backend, schema, stored balance, ledger or database-volume changes were made. Backend tests were not repeated for this presentation-only change.
+
+---
+
 # Model organisation refactor — 1 November 2026
 
 Split `backend/app/db/models.py` into seven domain modules plus a shared base and explicit package exports. Largest mapping module: 114 lines. Existing `app.db.models` imports remain compatible.

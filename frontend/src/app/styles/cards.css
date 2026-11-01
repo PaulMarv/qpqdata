@@ -1,0 +1,170 @@
+/* Application hierarchy and responsive discovery cards. */
+.project-shell h1 {
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+.project-shell h2 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.project-shell h3 {
+  font-weight: 700;
+  font-size: 15px;
+}
+.project-heading > div > p {
+  max-width: 65ch;
+  font-size: 15px;
+}
+.project-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.project-facts dt {
+  font-size: 12px;
+  font-weight: 600;
+}
+.project-facts dd {
+  margin-top: 5px;
+  font-size: 17px;
+  font-weight: 750;
+}
+.collection-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+.card-content {
+  min-width: 0;
+}
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.project-shell .card-title {
+  margin: 16px 0 10px;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.35;
+  letter-spacing: -0.035em;
+}
+.card-title a {
+  text-decoration: none;
+}
+.card-title a:hover {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.project-shell .card-description {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #465975;
+  margin: 0 0 18px;
+}
+.project-shell .card-reference {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 20px 0 0;
+  color: #596b83;
+}
+.card-summary {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e0e7f4;
+  border-radius: 14px;
+  background: #f2f6fdbf;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+}
+.card-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.card-metrics dt,
+.card-field-label {
+  color: #52627b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.card-metrics dd {
+  margin: 5px 0 0;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+.card-metrics .card-reward {
+  font-size: 14px;
+  letter-spacing: normal;
+}
+.card-metrics .card-detail-value {
+  font-size: 15px;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+.card-reward .credit-badge {
+  max-width: 100%;
+}
+.card-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  border-top: 1px solid #dbe4f2;
+  padding-top: 13px;
+  color: #214eaf;
+  font-size: 13px;
+  font-weight: 750;
+  text-underline-offset: 4px;
+}
+.card-action:hover {
+  text-decoration: underline;
+}
+.card-action span {
+  font-size: 18px;
+}
+.project-shell .card-availability {
+  font-size: 12px;
+  font-weight: 600;
+  color: #465975;
+  margin: 0;
+}
+.project-shell .card-updated {
+  font-size: 11px;
+  color: #52627b;
+  margin: -6px 0 0;
+}
+.project-shell .card-labels p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #344761;
+  font-weight: 600;
+}
+@media (min-width: 720px) {
+  .collection-card {
+    grid-template-columns: minmax(0, 1fr) minmax(230px, 30%);
+    gap: 28px;
+  }
+  .card-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .card-summary {
+    padding: 20px;
+  }
+}
+@media (max-width: 380px) {
+  .card-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

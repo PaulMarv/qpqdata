@@ -1,9 +1,12 @@
-import Link from "next/link";
+import Brand from "./components/brand";
 import AccountNav from "./components/account-nav";
+import SiteNav from "./components/site-nav";
 import { currentUser } from "../lib/session";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./styles/surfaces.css";
+import "./styles/cards.css";
 const bodyFont = localFont({
   src: "./fonts/Manrope.ttf",
   variable: "--font-body",
@@ -18,7 +21,8 @@ const headingFont = localFont({
 });
 export const metadata: Metadata = {
   title: "QPQData — Images with purpose",
-  description: "A foundation for community-powered image datasets.",
+  description:
+    "Capture and label personal image collections, contribute to research projects and download published public datasets for free.",
 };
 export default async function RootLayout({
   children,
@@ -30,18 +34,13 @@ export default async function RootLayout({
         <a className="skip-link" href="#main">
           Skip to content
         </a>
-        <header className="site-header mx-auto flex flex-wrap gap-4 max-w-6xl items-center justify-between px-5 py-5 sm:px-10">
-          <Link className="brand text-xl font-bold" href="/">
-            QPQ<span className="brand-accent">Data</span>
-          </Link>
-          <div className="flex flex-wrap items-center gap-4 sm:gap-8">
-            <Link className="text-sm font-semibold" href="/projects">
-              Explore
-            </Link>
-            <Link className="text-sm font-semibold" href="/datasets">
-              Datasets
-            </Link>
-            <AccountNav user={user} />
+        <header className="site-header">
+          <div className="site-header-inner">
+            <Brand />
+            <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+              <SiteNav />
+              <AccountNav user={user} />
+            </div>
           </div>
         </header>
         {children}

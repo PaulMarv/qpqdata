@@ -232,7 +232,7 @@ it("renders project identifiers and real server pagination links", () => {
       />
     </>,
   );
-  expect(screen.getByText("ID " + project.id)).toBeVisible();
+  expect(screen.getByText("Project ID " + project.id)).toBeVisible();
   expect(screen.getByRole("link", { name: /Edit draft/ })).toHaveAttribute(
     "href",
     "/collections/" + project.id + "/edit",
