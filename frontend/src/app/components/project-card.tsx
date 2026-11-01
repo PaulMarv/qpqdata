@@ -11,7 +11,9 @@ export function ProjectCard({
   return (
     <article className="project-result">
       <div className="project-result-top">
-        <span className="project-tag">{p.status}</span>
+        <span className="project-tag">
+          {p.mode === "personal" ? "Personal · " + p.visibility : p.status}
+        </span>
         <span>{d.category}</span>
       </div>
       <h2>
@@ -21,7 +23,10 @@ export function ProjectCard({
       <p className="project-id">ID {p.id}</p>
       <div className="project-result-top">
         <span>
-          {d.image_count} images · {d.reward_per_image} QC / image
+          {d.image_count} images ·{" "}
+          {p.mode === "personal"
+            ? "0 QC"
+            : `${d.reward_per_image} QC / community image`}
         </span>
         <Link
           className="project-link"

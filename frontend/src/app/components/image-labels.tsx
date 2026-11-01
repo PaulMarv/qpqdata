@@ -2,6 +2,7 @@
 import type { Definition } from "../../lib/projects";
 import type { Answers } from "../../lib/submissions";
 export default function ImageLabels({
+  hideLabel = false,
   definition: d,
   prefix,
   label,
@@ -9,6 +10,7 @@ export default function ImageLabels({
   onLabel,
   onAnswer,
 }: {
+  hideLabel?: boolean;
   definition: Definition;
   prefix: string;
   label: string;
@@ -18,21 +20,23 @@ export default function ImageLabels({
 }) {
   return (
     <div>
-      <label>
-        Image label (required)
-        <select
-          value={label}
-          onChange={(e) => onLabel(e.target.value)}
-          required
-        >
-          <option value="">Choose a label</option>
-          {d.labels?.map((l) => (
-            <option key={l.key} value={l.key}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!hideLabel && (
+        <label>
+          Image label (required)
+          <select
+            value={label}
+            onChange={(e) => onLabel(e.target.value)}
+            required
+          >
+            <option value="">Choose a label</option>
+            {d.labels?.map((l) => (
+              <option key={l.key} value={l.key}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {d.labels?.find((l) => l.key === label)?.description && (
         <p>{d.labels.find((l) => l.key === label)?.description}</p>
       )}

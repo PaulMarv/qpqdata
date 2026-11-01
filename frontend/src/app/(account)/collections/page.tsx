@@ -42,6 +42,12 @@ export default async function Collections({
             <div key={p.id}>
               <ProjectCard project={p} owner />
               <Link
+                className="project-button secondary"
+                href={"/collections/" + p.id + "/images"}
+              >
+                My images · Capture & manage
+              </Link>
+              <Link
                 className="project-link"
                 href={"/collections/" + p.id + "/dataset"}
               >

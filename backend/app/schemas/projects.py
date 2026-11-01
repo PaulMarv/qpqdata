@@ -87,6 +87,8 @@ class Label(Contract):
 class ProjectDefinition(Contract):
     schema_version: Literal[1] = 1
     name: Nonempty
+    mode: Literal["personal", "crowdsourced"] = "crowdsourced"
+    label_title: Nonempty = "Image label"
     description: str = Field(default="", max_length=5000)
     research_purpose: str = Field(default="", max_length=5000)
     category: Category = "other"
@@ -131,6 +133,11 @@ class Transition(Contract):
 
 
 class ProjectView(Contract):
+    mode: Literal["personal", "crowdsourced"] = "crowdsourced"
+    visibility: Literal["private", "public"] = "private"
+    owner_images: int = 0
+    community_images: int = 0
+    remaining_slots: int = 0
     id: UUID
     owner_id: UUID
     status: State

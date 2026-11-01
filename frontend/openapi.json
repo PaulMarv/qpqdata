@@ -988,6 +988,182 @@
         }
       }
     },
+    "/api/v1/submissions/{ident}/labels": {
+      "patch": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Labels",
+        "operationId": "editPersonalImageLabels",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Ident"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnotationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/owner-images": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Owner Images",
+        "operationId": "listOwnerImages",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Page Size"
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Label"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/private-export": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Private Export",
+        "operationId": "downloadPrivateCollection",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/moderation": {
       "get": {
         "tags": [
@@ -2214,6 +2390,33 @@
   },
   "components": {
     "schemas": {
+      "AnnotationRequest": {
+        "properties": {
+          "label_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Label Key"
+          },
+          "answers": {
+            "additionalProperties": true,
+            "type": "object",
+            "maxProperties": 30,
+            "title": "Answers"
+          },
+          "expected_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Hash"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label_key",
+          "expected_hash"
+        ],
+        "title": "AnnotationRequest"
+      },
       "AuthoriseImageRequest": {
         "properties": {
           "consent_id": {
@@ -2243,6 +2446,11 @@
       },
       "Capacity": {
         "properties": {
+          "owner_images": {
+            "type": "integer",
+            "title": "Owner Images",
+            "default": 0
+          },
           "project_id": {
             "type": "string",
             "format": "uuid",
@@ -2902,6 +3110,22 @@
             "minLength": 1,
             "title": "Name"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "crowdsourced"
+            ],
+            "title": "Mode",
+            "default": "crowdsourced"
+          },
+          "label_title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label Title",
+            "default": "Image label"
+          },
           "description": {
             "type": "string",
             "maxLength": 5000,
@@ -3100,6 +3324,39 @@
       },
       "ProjectView": {
         "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "crowdsourced"
+            ],
+            "title": "Mode",
+            "default": "crowdsourced"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "public"
+            ],
+            "title": "Visibility",
+            "default": "private"
+          },
+          "owner_images": {
+            "type": "integer",
+            "title": "Owner Images",
+            "default": 0
+          },
+          "community_images": {
+            "type": "integer",
+            "title": "Community Images",
+            "default": 0
+          },
+          "remaining_slots": {
+            "type": "integer",
+            "title": "Remaining Slots",
+            "default": 0
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -3559,6 +3816,20 @@
       },
       "SubmissionView": {
         "properties": {
+          "annotation_hash": {
+            "type": "string",
+            "title": "Annotation Hash",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "community"
+            ],
+            "title": "Source",
+            "default": "community"
+          },
           "id": {
             "type": "string",
             "format": "uuid",

@@ -40,12 +40,32 @@ export default function DatasetManager({
     <main id="main" className="project-shell">
       <div className="project-heading">
         <div>
-          <h1>Publish dataset</h1>
+          <h1>
+            {p.mode === "personal"
+              ? "Publish your dataset?"
+              : "Publish dataset"}
+          </h1>
           <p>
             {p.definition.name} · {p.id}
           </p>
         </div>
       </div>
+      {p.mode === "personal" && (
+        <section className="project-panel">
+          <h2>Private until explicitly published</h2>
+          <p>
+            Public datasets are free to download. Publishing never enables
+            community contributions. Withdrawal blocks future downloads but
+            cannot recall prior copies.
+          </p>
+          <Link
+            className="project-link"
+            href={"/collections/" + p.id + "/images"}
+          >
+            Keep Private · Back to my images
+          </Link>
+        </section>
+      )}
       <section className="project-panel">
         <p>
           Approval and QC payout do not authorise public distribution. Every

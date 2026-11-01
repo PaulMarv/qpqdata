@@ -8,6 +8,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    DatasetConsent,
+    ImageAnnotation,
     ModerationDecision,
     Project,
     ProjectReservation,
@@ -66,7 +68,7 @@ def validate_answers(definition: ProjectDefinition, label: str, answers: dict) -
 
 
 def active(now):
-    return or_(
+    return ((Submission.workflow_version != 2) | Submission.hidden_at.is_(None)) & or_(
         Submission.status.in_(["pending", "approved"]),
         (Submission.status == "uploading")
         & Submission.abandoned_at.is_(None)
@@ -75,14 +77,18 @@ def active(now):
 
 
 def accepting(session: Session, user: User, project: Project) -> ProjectDefinition:
-    if project.owner_id == user.id:
-        raise AuthError("You cannot contribute to your own collection.", 403)
-    if project.status != "published" or project.published_version is None:
+    is_owner = project.owner_id == user.id
+    if project.mode == "personal" and not is_owner:
+        raise AuthError("Collection not found.", 404)
+    if (
+        project.status not in ({"published", "paused"} if is_owner else {"published"})
+        or project.published_version is None
+    ):
         raise AuthError("This collection is not accepting new images.", 409)
     reservation = session.scalar(
         select(ProjectReservation).where(ProjectReservation.project_id == project.id)
     )
-    if not reservation or reservation.release_entry_id:
+    if project.mode != "personal" and (not reservation or reservation.release_entry_id):
         raise AuthError("Collection funding is unavailable.", 409)
     version = session.scalar(
         select(ProjectVersion).where(
@@ -114,6 +120,15 @@ def initiate(
     project = session.scalar(select(Project).where(Project.id == project_id).with_for_update())
     if not project:
         raise AuthError("Collection not found.", 404)
+    existing = session.scalar(
+        select(Submission).where(
+            Submission.contributor_id == user.id, Submission.request_key == body.request_key
+        )
+    )
+    if existing:
+        if existing.project_id != project_id or existing.request_hash != digest:
+            raise AuthError("This retry key belongs to different submission data.", 409)
+        return existing
     definition = accepting(session, user, project)
     if body.criteria_version != project.published_version:
         raise AuthError("Reload the published collection requirements.", 409)
@@ -126,7 +141,10 @@ def initiate(
     )
     if session.scalar(query) >= definition.image_count:
         raise AuthError("Collection capacity has been reached.", 409)
-    if session.scalar(query.where(Submission.contributor_id == user.id)) >= PER_USER_LIMIT:
+    if (
+        project.owner_id != user.id
+        and session.scalar(query.where(Submission.contributor_id == user.id)) >= PER_USER_LIMIT
+    ):
         raise AuthError("You reached the 20-image limit for this collection.", 409)
     if (
         session.scalar(
@@ -143,7 +161,7 @@ def initiate(
         status="uploading",
         object_key=f"reserved/{ident.hex}",
         metadata_values=body.answers,
-        workflow_version=1,
+        workflow_version=2 if project.owner_id == user.id else 1,
         criteria_version=body.criteria_version,
         label_key=body.label_key,
         request_key=body.request_key,
@@ -171,7 +189,7 @@ def own_submission(session: Session, user: User, ident: uuid.UUID, lock=False) -
     query = select(Submission).where(
         Submission.id == ident,
         Submission.contributor_id == user.id,
-        Submission.workflow_version == 1,
+        Submission.workflow_version.in_([1, 2]),
     )
     row = session.scalar(query.with_for_update() if lock else query)
     if not row:
@@ -191,6 +209,8 @@ def view(session: Session, row: Submission) -> SubmissionView:
         select(ModerationDecision).where(ModerationDecision.submission_id == row.id)
     )
     return SubmissionView(
+        annotation_hash=annotation_hash(row),
+        source="owner" if row.workflow_version == 2 else "community",
         id=row.id,
         project_id=row.project_id,
         project_name=session.get(Project, row.project_id).name,
@@ -222,6 +242,8 @@ def view(session: Session, row: Submission) -> SubmissionView:
 def suppress(
     session: Session, user: User, ident: uuid.UUID, reason: str, details: str
 ) -> Submission:
+    initial = own_submission(session, user, ident)
+    session.scalar(select(Project).where(Project.id == initial.project_id).with_for_update())
     row = own_submission(session, user, ident, True)
     return suppress_row(session, user, row, reason, details)
 
@@ -251,7 +273,7 @@ def upload_definition(session: Session, user: User, ident: uuid.UUID) -> Project
         raise AuthError("Upload is expired or suppressed.", 410)
     if row.status == "uploading" and row.upload_expires_at <= datetime.now(UTC):
         raise AuthError("Upload slot expired. Start again.", 410)
-    if row.status == "pending":
+    if row.status in {"pending", "approved"}:
         version = session.scalar(
             select(ProjectVersion).where(
                 ProjectVersion.project_id == row.project_id,
@@ -270,10 +292,14 @@ def finish_image(
     store: ObjectStore,
     key: str,
 ) -> Submission:
+    initial = own_submission(session, user, ident)
+    project = session.scalar(
+        select(Project).where(Project.id == initial.project_id).with_for_update()
+    )
     row = own_submission(session, user, ident, True)
     if row.hidden_at or row.abandoned_at:
         raise AuthError("Upload is expired or suppressed.", 410)
-    if row.status == "pending":
+    if row.status in {"pending", "approved"}:
         if row.content_hash != image.content_hash:
             raise AuthError("This retry contains a different image.", 409)
         return row
@@ -297,6 +323,72 @@ def finish_image(
     row.content_hash = image.content_hash
     row.image_format = image.format
     row.width, row.height, row.byte_size = image.width, image.height, len(image.data)
-    row.submitted_at, row.status = datetime.now(UTC), "pending"
+    row.submitted_at, row.status = (
+        datetime.now(UTC),
+        "approved" if row.workflow_version == 2 else "pending",
+    )
+    session.flush()
+    return row
+
+
+def annotation_hash(row: Submission) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {"label": row.label_key, "answers": row.metadata_values},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+
+
+def edit_annotation(session: Session, user: User, ident: uuid.UUID, body) -> Submission:
+    row = own_submission(session, user, ident, True)
+    project = session.get(Project, row.project_id)
+    if (
+        project.mode != "personal"
+        or row.workflow_version != 2
+        or row.status != "approved"
+        or row.hidden_at
+    ):
+        raise AuthError("Only available personal images can be relabelled.", 409)
+    if session.scalar(
+        select(DatasetConsent.id).where(
+            DatasetConsent.submission_id == row.id,
+            DatasetConsent.authorised_at.is_not(None),
+            DatasetConsent.withdrawn_at.is_(None),
+        )
+    ):
+        raise AuthError(
+            "Withdraw public distribution permission before editing this image. "
+            "Historical snapshots remain fixed.",
+            409,
+        )
+    if annotation_hash(row) != body.expected_hash:
+        raise AuthError("Labels changed. Reload before editing.", 409)
+    version = session.scalar(
+        select(ProjectVersion).where(
+            ProjectVersion.project_id == row.project_id,
+            ProjectVersion.version == row.criteria_version,
+        )
+    )
+    validate_answers(
+        ProjectDefinition.model_validate(version.definition), body.label_key, body.answers
+    )
+    previous = {"label": row.label_key, "answers": row.metadata_values}
+    replacement = {"label": body.label_key, "answers": body.answers}
+    if previous == replacement:
+        return row
+    session.add(
+        ImageAnnotation(
+            submission_id=row.id,
+            actor_id=user.id,
+            version=row.annotation_version + 1,
+            previous=previous,
+            replacement=replacement,
+        )
+    )
+    session.flush()
+    row.annotation_version += 1
+    row.label_key, row.metadata_values = body.label_key, body.answers
     session.flush()
     return row

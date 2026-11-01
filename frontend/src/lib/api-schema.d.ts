@@ -296,6 +296,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/submissions/{ident}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Labels */
+        patch: operations["editPersonalImageLabels"];
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/owner-images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Owner Images */
+        get: operations["listOwnerImages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{project_id}/private-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Private Export */
+        get: operations["downloadPrivateCollection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/moderation": {
         parameters: {
             query?: never;
@@ -660,6 +711,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnnotationRequest */
+        AnnotationRequest: {
+            /** Label Key */
+            label_key: string;
+            /** Answers */
+            answers?: {
+                [key: string]: unknown;
+            };
+            /** Expected Hash */
+            expected_hash: string;
+        };
         /** AuthoriseImageRequest */
         AuthoriseImageRequest: {
             /**
@@ -680,6 +742,11 @@ export interface components {
         };
         /** Capacity */
         Capacity: {
+            /**
+             * Owner Images
+             * @default 0
+             */
+            owner_images: number;
             /**
              * Project Id
              * Format: uuid
@@ -969,6 +1036,17 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Mode
+             * @default crowdsourced
+             * @enum {string}
+             */
+            mode: "personal" | "crowdsourced";
+            /**
+             * Label Title
+             * @default Image label
+             */
+            label_title: string;
+            /**
              * Description
              * @default
              */
@@ -1059,6 +1137,33 @@ export interface components {
         };
         /** ProjectView */
         ProjectView: {
+            /**
+             * Mode
+             * @default crowdsourced
+             * @enum {string}
+             */
+            mode: "personal" | "crowdsourced";
+            /**
+             * Visibility
+             * @default private
+             * @enum {string}
+             */
+            visibility: "private" | "public";
+            /**
+             * Owner Images
+             * @default 0
+             */
+            owner_images: number;
+            /**
+             * Community Images
+             * @default 0
+             */
+            community_images: number;
+            /**
+             * Remaining Slots
+             * @default 0
+             */
+            remaining_slots: number;
             /**
              * Id
              * Format: uuid
@@ -1235,6 +1340,17 @@ export interface components {
         };
         /** SubmissionView */
         SubmissionView: {
+            /**
+             * Annotation Hash
+             * @default
+             */
+            annotation_hash: string;
+            /**
+             * Source
+             * @default community
+             * @enum {string}
+             */
+            source: "owner" | "community";
             /**
              * Id
              * Format: uuid
@@ -2048,6 +2164,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubmissionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    editPersonalImageLabels: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ident: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnnotationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    listOwnerImages: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+                label?: string | null;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    downloadPrivateCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

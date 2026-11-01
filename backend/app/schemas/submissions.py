@@ -29,6 +29,8 @@ class SubmissionRequest(Contract):
 
 
 class SubmissionView(Contract):
+    annotation_hash: str = ""
+    source: Literal["owner", "community"] = "community"
     id: UUID
     project_id: UUID
     project_name: str
@@ -63,3 +65,9 @@ class SubmissionPage(Contract):
 class RemovalBody(Contract):
     reason: Literal["privacy", "copyright", "other"]
     details: str = Field(default="", max_length=1000)
+
+
+class AnnotationRequest(Contract):
+    label_key: Key
+    answers: dict[str, Any] = Field(default_factory=dict, max_length=30)
+    expected_hash: str = Field(pattern=r"^[0-9a-f]{64}$")

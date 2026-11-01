@@ -53,7 +53,7 @@ app/
 ├── schemas/                # Pydantic request/response and criteria contracts
 ├── services/               # Authentication, eligibility, collections, image processing, submissions
 ├── db/
-│   ├── models.py           # SQLAlchemy models and metadata
+│   ├── models/             # Domain mappings, shared base and public exports
 │   └── session.py          # Engine/session construction
 ├── core/                   # Environment configuration
 ├── integrations/           # SMTP delivery and private object-store adapter
@@ -76,3 +76,12 @@ This is a package reorganisation only: public API paths, operation IDs, generate
 ### Frontend container packaging
 
 Phase 2E uses Next.js `output: "standalone"`; the final Docker image copies only the traced runtime and `.next/static`, and starts `node server.js` as the existing non-root node user. It does not duplicate the full development dependency/build tree into the runtime layer. This follows [Next.js standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output). The project currently has no `public/` directory; if one is introduced, its assets must also be copied into the runtime.
+
+
+## Final MVP functional enhancement (1 November 2026)
+
+Collection mode and dataset visibility are independent. Revision 0009 defaults existing projects to Crowdsourced and adds an owner-inferred zero-reward submission workflow plus append-only annotation revisions. Personal projects retain private owner-only project access regardless of a separate public dataset permission. Crowdsourced escrow remains fully reserved until ordinary closure; owner images reduce target capacity without displacing community commitments or generating payouts. Public exports reuse the worker; bounded private snapshots reuse canonical image/ZIP processing with authenticated revocable streaming. See [the complete policies and file inventory](final-mvp-enhancement.md). No Phase 3 infrastructure or features are enabled.
+
+## Model package organisation
+
+SQLAlchemy mappings live in `backend/app/db/models/`: `accounts.py`, `organisations.py`, `projects.py`, `submissions.py`, `credits.py`, `moderation.py` and `datasets.py`. `base.py` owns the single declarative Base and common Record mixin. Package exports preserve existing `from app.db.models import ...` imports and register every table for Alembic. Domain modules use table-name foreign keys without circular imports or database connections at import time. This is a structural refactor only: class definitions, constraints, table/index DDL and migration history are unchanged.

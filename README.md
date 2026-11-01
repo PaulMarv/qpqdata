@@ -1,6 +1,8 @@
-# QPQData — Phase 2E
+# QPQData — Final MVP functional enhancement
 
 Separate Next.js/TypeScript/Tailwind frontend and FastAPI/SQLAlchemy/Alembic backend, with PostgreSQL. The foundation includes an explicitly enabled local Mailpit verification harness. Phase 2A adds passwordless login, server-side sessions, profiles and one-time welcome credits. Phase 2B adds collection drafts, versioned criteria, public discovery and transactional QC reservations. Phase 2C adds development-only private image submissions and per-image labelling. Phase 2D adds owner/designated review, atomic reservation-funded rewards, rejection reasons, private removal and wallet history. Phase 2E adds explicitly authorised, versioned public datasets and free ZIP downloads.
+
+The final MVP increment adds private Personal collections, zero-QC owner images in Crowdsourced collections and shared rapid capture/one-tap labelling. See [implementation and manual tests](docs/final-mvp-enhancement.md) and [actual verification results](docs/verification.md). Stop for review before Phase 3.
 
 ## Start with Docker
 

@@ -5,7 +5,7 @@ from app.db.models import Base
 
 
 def test_all_models_compile_for_postgres() -> None:
-    assert len(Base.metadata.tables) == 24
+    assert len(Base.metadata.tables) == 25
     for table in Base.metadata.sorted_tables:
         assert str(CreateTable(table).compile(dialect=postgresql.dialect()))
 
@@ -25,7 +25,7 @@ def test_migrations_render_postgres_guards(monkeypatch) -> None:
 
     output = io.StringIO()
     config = Config("alembic.ini", output_buffer=output)
-    assert ScriptDirectory.from_config(config).get_heads() == ["0008"]
+    assert ScriptDirectory.from_config(config).get_heads() == ["0009"]
     monkeypatch.setenv("QPQ_DATABASE_URL", "postgresql+psycopg://offline:offline@localhost/offline")
     command.upgrade(config, "head", sql=True)
     sql = output.getvalue()

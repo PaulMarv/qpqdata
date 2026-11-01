@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import (
     CreditLedgerEntry,
+    DatasetPublication,
     Project,
     ProjectReservation,
     ProjectVersion,
@@ -54,6 +55,7 @@ def save_definition(session: Session, project: Project, definition: ProjectDefin
 def create(session: Session, user: User, definition: ProjectDefinition) -> Project:
     project = Project(
         owner_id=user.id,
+        mode=definition.mode,
         name=definition.name,
         description=definition.description,
         current_version=0,
@@ -61,6 +63,12 @@ def create(session: Session, user: User, definition: ProjectDefinition) -> Proje
     session.add(project)
     session.flush()
     save_definition(session, project, definition)
+    if definition.mode == "personal":
+        if not definition.labels:
+            raise AuthError("Define at least one image label.", 400)
+        project.published_version = project.current_version
+        project.status = "published"
+        session.flush()
     return project
 
 
@@ -68,6 +76,8 @@ def edit(
     session: Session, user: User, project_id: UUID, expected: int, definition: ProjectDefinition
 ) -> Project:
     project = owner_project(session, user, project_id)
+    if definition.mode != project.mode:
+        raise AuthError("Collection mode cannot be changed.", 409)
     if project.status != "draft" or project.published_version is not None:
         raise AuthError(
             "Published definitions are frozen. Create a new project for different criteria.", 409
@@ -75,6 +85,12 @@ def edit(
     if project.current_version != expected:
         raise AuthError("This draft changed. Reload before saving.", 409)
     save_definition(session, project, definition)
+    if definition.mode == "personal":
+        if not definition.labels:
+            raise AuthError("Define at least one image label.", 400)
+        project.published_version = project.current_version
+        project.status = "published"
+        session.flush()
     return project
 
 
@@ -143,6 +159,21 @@ def transition(
         .where(ProjectReservation.project_id == project.id)
         .with_for_update()
     )
+    if project.mode == "personal":
+        if status == "closed" and session.scalar(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.project_id == project.id,
+                Submission.status == "uploading",
+                Submission.abandoned_at.is_(None),
+                Submission.upload_expires_at > datetime.now(UTC),
+            )
+        ):
+            raise AuthError("Finish or cancel active uploads before closing.", 409)
+        project.status = status
+        session.flush()
+        return project
     if status == "published":
         publication_checks(session, project, definition)
         if project.status == "draft":
@@ -203,6 +234,52 @@ def transition(
 def view(session: Session, project: Project) -> ProjectView:
     definition = definition_for(session, project)
     return ProjectView(
+        mode=project.mode,
+        visibility="public"
+        if session.scalar(
+            select(DatasetPublication.id).where(
+                DatasetPublication.project_id == project.id,
+                DatasetPublication.withdrawn_at.is_(None),
+            )
+        )
+        else "private",
+        owner_images=session.scalar(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.project_id == project.id,
+                Submission.workflow_version == 2,
+                Submission.status == "approved",
+                Submission.hidden_at.is_(None),
+            )
+        ),
+        community_images=session.scalar(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.project_id == project.id,
+                Submission.workflow_version == 1,
+                Submission.status == "approved",
+            )
+        ),
+        remaining_slots=max(
+            0,
+            definition.image_count
+            - session.scalar(
+                select(func.count())
+                .select_from(Submission)
+                .where(
+                    Submission.project_id == project.id,
+                    (Submission.status.in_(["approved", "pending"]))
+                    | (
+                        (Submission.status == "uploading")
+                        & Submission.abandoned_at.is_(None)
+                        & (Submission.upload_expires_at > datetime.now(UTC))
+                    ),
+                    (Submission.workflow_version != 2) | Submission.hidden_at.is_(None),
+                )
+            ),
+        ),
         id=project.id,
         owner_id=project.owner_id,
         status=project.status,
@@ -210,7 +287,9 @@ def view(session: Session, project: Project) -> ProjectView:
         published_version=project.published_version,
         definition=definition,
         reserved_credits=remaining(session, project),
-        budget=definition.image_count * definition.reward_per_image,
+        budget=0
+        if project.mode == "personal"
+        else definition.image_count * definition.reward_per_image,
         created_at=project.created_at,
         closing_date_passed=bool(
             definition.closing_date and definition.closing_date < datetime.now(UTC).date()
@@ -232,7 +311,7 @@ def discover(
     query = (
         query.where(Project.owner_id == owner.id)
         if owner
-        else query.where(Project.published_version.is_not(None))
+        else query.where(Project.published_version.is_not(None), Project.mode == "crowdsourced")
     )
     if category:
         query = query.where(Project.category == category)

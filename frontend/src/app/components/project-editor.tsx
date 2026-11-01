@@ -21,9 +21,22 @@ function Field({ title, children }: { title: string; children: ReactNode }) {
     </label>
   );
 }
-export default function ProjectEditor({ initial }: { initial?: Project }) {
+export default function ProjectEditor({
+  initial,
+  mode = "crowdsourced",
+}: {
+  initial?: Project;
+  mode?: "personal" | "crowdsourced";
+}) {
   const [d, setD] = useState<Definition>(
-    initial?.definition ?? blankDefinition,
+    () =>
+      initial?.definition ?? {
+        ...blankDefinition(),
+        mode,
+        ...(mode === "personal"
+          ? { image_count: 500, licence: "CC0-1.0", reuse_terms: "CC0-1.0" }
+          : {}),
+      },
   );
   const [preview, setPreview] = useState(false),
     [busy, setBusy] = useState(false),
@@ -50,7 +63,9 @@ export default function ProjectEditor({ initial }: { initial?: Project }) {
         initial ? "PUT" : "POST",
         initial ? { expected_version: initial.version, definition: d } : d,
       );
-      router.push("/projects/" + p.id);
+      router.push(
+        "/projects/" + p.id + (d.mode === "personal" ? "/contribute" : ""),
+      );
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save draft.");
@@ -107,7 +122,10 @@ export default function ProjectEditor({ initial }: { initial?: Project }) {
               ? "Preview your collection"
               : "Define contribution requirements"}
           </h1>
-          <p>Create clear image labels and questions for contributors.</p>
+          <p>
+            Prefer one essential image label. Additional questions default to
+            optional and are collapsed during quick capture.
+          </p>
         </div>
         <button
           type="button"
@@ -512,7 +530,7 @@ export default function ProjectEditor({ initial }: { initial?: Project }) {
                     title: "",
                     description: "",
                     type: "single_choice",
-                    required: true,
+                    required: false,
                     integer_only: false,
                     options: ["Option 1", "Option 2"],
                   },
@@ -526,11 +544,12 @@ export default function ProjectEditor({ initial }: { initial?: Project }) {
             <h2>Budget, schedule &amp; licence</h2>
             <div className="project-grid">
               {numeric("image_count", "Number of images requested", 1000000)}
-              {numeric(
-                "reward_per_image",
-                "Reward per accepted image (QC)",
-                1000,
-              )}
+              {d.mode !== "personal" &&
+                numeric(
+                  "reward_per_image",
+                  "Reward per accepted image (QC)",
+                  1000,
+                )}
               <Field title="Optional closing date (UTC)">
                 <input
                   type="date"
@@ -557,7 +576,9 @@ export default function ProjectEditor({ initial }: { initial?: Project }) {
             </div>
             {text("reuse_terms", "Intended reuse terms")}
             <p className="project-notice">
-              Reservation required on publication:{" "}
+              {d.mode === "personal"
+                ? "Personal images never reserve or earn QC:"
+                : "Reservation required on publication:"}{" "}
               <strong>{budget(d)} QC</strong>. Saving a draft reserves no
               credits.
             </p>
@@ -574,7 +595,11 @@ export default function ProjectEditor({ initial }: { initial?: Project }) {
           )}
           <div className="project-actions">
             <button className="project-button" disabled={busy}>
-              {busy ? "Saving…" : "Save draft"}
+              {busy
+                ? "Saving…"
+                : d.mode === "personal"
+                  ? "Create personal collection"
+                  : "Save draft"}
             </button>
             <button
               type="button"

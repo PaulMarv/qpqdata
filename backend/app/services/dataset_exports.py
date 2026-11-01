@@ -162,6 +162,7 @@ def generate(
                         "sha256": hashlib.sha256(image).hexdigest(),
                         "label": annotations["label"],
                         "answers": annotations["answers"],
+                        **({"source": annotations["source"]} if "source" in annotations else {}),
                         "public_attribution": annotations["attribution"],
                     }
                 )

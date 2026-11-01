@@ -1,4 +1,4 @@
-import ProjectEditor from "../../../components/project-editor";
+import CollectionStart from "../../../components/collection-start";
 export default function NewProject() {
-  return <ProjectEditor />;
+  return <CollectionStart />;
 }

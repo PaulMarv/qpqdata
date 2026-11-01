@@ -65,7 +65,7 @@ def get_project(project_id: UUID, request: Request) -> ProjectView:
         project = session.get(Project, project_id)
         if not project:
             raise HTTPException(404, "Project not found.")
-        if project.published_version is None:
+        if project.published_version is None or project.mode == "personal":
             if not request.app.state.settings.auth_enabled:
                 raise HTTPException(404, "Project not found.")
             try:

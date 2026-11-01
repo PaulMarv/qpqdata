@@ -24,6 +24,11 @@ vi.mock("../src/lib/submissions", async () => {
   return { ...actual, submissionAction: vi.fn(), uploadImage: vi.fn() };
 });
 const project: Project = {
+  mode: "crowdsourced",
+  visibility: "private",
+  owner_images: 0,
+  community_images: 0,
+  remaining_slots: 20,
   id: "e084c03d-6fa3-445c-a479-26cbb697c7d4",
   owner_id: "b084c03d-6fa3-445c-a479-26cbb697c7d4",
   status: "published",
@@ -57,6 +62,8 @@ const project: Project = {
   closing_date_passed: false,
 };
 const submission: Submission = {
+  annotation_hash: "0".repeat(64),
+  source: "community",
   id: "c084c03d-6fa3-445c-a479-26cbb697c7d4",
   project_id: project.id,
   project_name: "Kitchens",

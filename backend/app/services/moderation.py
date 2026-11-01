@@ -116,7 +116,11 @@ def decide(
         approved = session.scalar(
             select(func.count())
             .select_from(Submission)
-            .where(Submission.project_id == project.id, Submission.status == "approved")
+            .where(
+                Submission.project_id == project.id,
+                Submission.status == "approved",
+                (Submission.workflow_version != 2) | Submission.hidden_at.is_(None),
+            )
         )
         if remaining(session, project) < reward or approved >= definition.image_count:
             raise AuthError("Insufficient reserved approval capacity.", 409)
@@ -154,7 +158,9 @@ def dashboard(
     page_size: int,
 ) -> ReviewPage:
     projects = session.scalars(
-        select(Project).where(permission(user)).order_by(Project.created_at.desc(), Project.id)
+        select(Project)
+        .where(permission(user), Project.mode == "crowdsourced")
+        .order_by(Project.created_at.desc(), Project.id)
     ).all()
     if project_id and project_id not in {p.id for p in projects}:
         raise AuthError("Collection not found.", 404)
@@ -186,12 +192,23 @@ def dashboard(
             )
         )
         definition = ProjectDefinition.model_validate(version.definition)
+        owner_count = session.scalar(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.project_id == p.id,
+                Submission.workflow_version == 2,
+                Submission.status == "approved",
+                Submission.hidden_at.is_(None),
+            )
+        )
         held = remaining(session, p)
         capacities.append(
             Capacity(
                 project_id=p.id,
                 project_name=p.name,
                 requested=definition.image_count,
+                owner_images=owner_count,
                 uploading=uploading,
                 pending=counts.get("pending", 0),
                 approved=counts.get("approved", 0),
@@ -199,7 +216,7 @@ def dashboard(
                 remaining_reserved_qc=held,
                 remaining_funded_approvals=min(
                     held // definition.reward_per_image,
-                    definition.image_count - counts.get("approved", 0),
+                    definition.image_count - counts.get("approved", 0) - owner_count,
                 ),
             )
         )

@@ -30,6 +30,7 @@ class ReviewItem(Contract):
 
 
 class Capacity(Contract):
+    owner_images: int = 0
     project_id: UUID
     project_name: str
     requested: int

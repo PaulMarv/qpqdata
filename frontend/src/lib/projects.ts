@@ -14,6 +14,8 @@ export const categories = [
 ] as const;
 export const blankDefinition = (): Definition => ({
   schema_version: 1,
+  mode: "crowdsourced",
+  label_title: "Image label",
   name: "",
   description: "",
   research_purpose: "",
@@ -36,7 +38,9 @@ export const blankDefinition = (): Definition => ({
 export const key = (prefix: string) =>
   prefix + "_" + crypto.randomUUID().replaceAll("-", "");
 export function budget(d: Definition) {
-  return (d.image_count ?? 20) * (d.reward_per_image ?? 1);
+  return d.mode === "personal"
+    ? 0
+    : (d.image_count ?? 20) * (d.reward_per_image ?? 1);
 }
 export async function projectMutation(
   path: string,

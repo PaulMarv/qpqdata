@@ -29,8 +29,12 @@ export default function SubmissionCard({
     setBusy(true);
     setMessage("");
     try {
-      await uploadImage(s.id, file, setProgress);
-      setMessage("Submitted · Pending Review");
+      const result = await uploadImage(s.id, file, setProgress);
+      setMessage(
+        result.source === "owner"
+          ? "Saved · Owner image · 0 QC"
+          : "Submitted · Pending Review",
+      );
       router.refresh();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Retry failed.");
@@ -77,6 +81,7 @@ export default function SubmissionCard({
               : s.status}
         </span>
       </div>
+      {s.source === "owner" && <p>Owner-provided · 0 QC spent · 0 QC earned</p>}
       <p className="project-id">
         Submission {s.id} · Definition v{s.criteria_version}
       </p>

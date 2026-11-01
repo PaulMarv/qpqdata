@@ -195,11 +195,16 @@ def exercise_submissions(engine, monkeypatch, tmp_path):
             == 404
         )
         client.cookies.set("qpq_session", owner_token)
+        owner_slot = client.post(url, json=body(), headers={**headers, "X-CSRF-Token": owner_csrf})
+        assert owner_slot.status_code == 201
+        assert owner_slot.json()["source"] == "owner"
         assert (
             client.post(
-                url, json=body(), headers={**headers, "X-CSRF-Token": owner_csrf}
+                f"/api/v1/submissions/{owner_slot.json()['id']}/cancel",
+                json={},
+                headers={**headers, "X-CSRF-Token": owner_csrf},
             ).status_code
-            == 403
+            == 200
         )
         client.cookies.set("qpq_session", token)
         duplicate = client.post(url, json=body(), headers=headers).json()["id"]

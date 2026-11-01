@@ -17,6 +17,8 @@ const item: components["schemas"]["ReviewItem"] = {
   reviewer_id: null,
   reviewed_at: null,
   submission: {
+    annotation_hash: "0".repeat(64),
+    source: "community",
     id: "e084c03d-6fa3-445c-a479-26cbb697c7d4",
     project_id: "b084c03d-6fa3-445c-a479-26cbb697c7d4",
     project_name: "Kitchen scenes",

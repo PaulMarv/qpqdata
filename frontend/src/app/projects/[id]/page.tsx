@@ -43,7 +43,9 @@ export default async function Detail({
             Project ID {p.id} · Definition v{p.version}
           </p>
         </div>
-        <span className="project-tag">{p.status}</span>
+        <span className="project-tag">
+          {p.mode === "personal" ? p.visibility : p.status}
+        </span>
       </div>
       {user?.id === p.owner_id && <ProjectActions project={p} />}
       <ProjectDefinition definition={p.definition} />
@@ -51,7 +53,12 @@ export default async function Detail({
         <h2>Contributing</h2>
         {p.closing_date_passed && <p>The closing date has passed.</p>}
         {user?.id === p.owner_id ? (
-          <p>You cannot contribute to your own collection.</p>
+          <Link
+            className="project-button"
+            href={"/collections/" + p.id + "/images"}
+          >
+            Add My Images · 0 QC
+          </Link>
         ) : p.status === "published" &&
           !p.closing_date_passed &&
           user &&

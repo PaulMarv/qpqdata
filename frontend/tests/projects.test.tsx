@@ -14,6 +14,11 @@ import { ProjectCard, Pagination } from "../src/app/components/project-card";
 import { POST, PUT } from "../src/app/api/projects/[[...path]]/route";
 import { blankDefinition, type Project } from "../src/lib/projects";
 const project: Project = {
+  mode: "crowdsourced",
+  visibility: "private",
+  owner_images: 0,
+  community_images: 0,
+  remaining_slots: 20,
   id: "e084c03d-6fa3-445c-a479-26cbb697c7d4",
   owner_id: "b084c03d-6fa3-445c-a479-26cbb697c7d4",
   status: "draft",
@@ -93,7 +98,7 @@ it("builds choice questions with configurable options and previews unsaved label
   expect(screen.getByText("Clean / organised")).toBeVisible();
   expect(
     screen.getByRole("group", { name: /How would you classify/ }),
-  ).toHaveTextContent("Required");
+  ).toHaveTextContent("Optional");
   expect(screen.getByRole("radio", { name: "Clean" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Back to editor" }));

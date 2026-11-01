@@ -19,12 +19,18 @@ export default function ProjectDefinition({
             <dd>{d.category}</dd>
           </div>
           <div>
-            <dt>Images requested</dt>
+            <dt>
+              {d.mode === "personal" ? "Image capacity" : "Images requested"}
+            </dt>
             <dd>{d.image_count}</dd>
           </div>
           <div>
             <dt>Reward per accepted image</dt>
-            <dd>{d.reward_per_image} QC</dd>
+            <dd>
+              {d.mode === "personal"
+                ? "0 QC · owner images"
+                : `${d.reward_per_image} QC · community images`}
+            </dd>
           </div>
           <div>
             <dt>Closing date (UTC)</dt>

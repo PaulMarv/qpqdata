@@ -19,7 +19,14 @@ async function transport(
     !/^[0-9a-f-]{36}$/.test(id) ||
     path.length > 2 ||
     !(
-      ["start", "image", "cancel", "removal-request", undefined] as unknown[]
+      [
+        "start",
+        "image",
+        "cancel",
+        "removal-request",
+        "labels",
+        undefined,
+      ] as unknown[]
     ).includes(action)
   )
     return reply("Not found", 404);
@@ -109,7 +116,7 @@ async function transport(
       });
     }
     if (
-      request.method !== "POST" ||
+      !["POST", "PATCH"].includes(request.method) ||
       !request.headers.get("content-type")?.startsWith("application/json")
     )
       return reply("JSON required", 415);
@@ -134,7 +141,13 @@ async function transport(
       return reply("Invalid request", 400);
     }
     let result;
-    if (start)
+    if (action === "labels" && request.method === "PATCH")
+      result = await client.PATCH("/api/v1/submissions/{ident}/labels", {
+        ...opts,
+        params: { path: { ident: id } },
+        body,
+      });
+    else if (start && request.method === "POST")
       result = await client.POST("/api/v1/projects/{project_id}/submissions", {
         ...opts,
         params: { path: { project_id: id } },
@@ -162,3 +175,5 @@ async function transport(
 export const POST = transport;
 export const GET = transport;
 export const PUT = transport;
+
+export const PATCH = transport;

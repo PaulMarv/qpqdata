@@ -166,6 +166,9 @@ def test_migration_and_ledger_guards(monkeypatch: pytest.MonkeyPatch, tmp_path) 
         from tests.dataset_cases import exercise_datasets
 
         exercise_datasets(engine, monkeypatch, tmp_path / "datasets")
+        from tests.owner_image_cases import exercise_owner_images
+
+        exercise_owner_images(engine, monkeypatch, tmp_path / "owner-images")
         # Tables remain for inspection; use a fresh disposable database for each run.
     finally:
         engine.dispose()

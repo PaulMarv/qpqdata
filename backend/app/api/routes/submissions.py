@@ -3,14 +3,15 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response
-from sqlalchemy import func, select
+from sqlalchemy import exists, func, select
 from starlette.concurrency import run_in_threadpool
 
 from app.api.dependencies import get_user, origin_check, transaction
-from app.db.models import Submission
+from app.db.models import RemovalRequest, Submission
 from app.integrations.storage import LocalObjectStore
 from app.schemas.submissions import (
     MAX_BYTES,
+    AnnotationRequest,
     RemovalBody,
     SubmissionPage,
     SubmissionRequest,
@@ -50,7 +51,7 @@ def mine(
     with transaction(request) as session:
         user = get_user(session, request)
         q = select(Submission).where(
-            Submission.contributor_id == user.id, Submission.workflow_version == 1
+            Submission.contributor_id == user.id, Submission.workflow_version.in_([1, 2])
         )
         total = session.scalar(select(func.count()).select_from(q.subquery()))
         rows = session.scalars(
@@ -163,6 +164,9 @@ def image(ident: uuid.UUID, request: Request):
             row.status not in {"pending", "approved", "rejected"}
             or row.hidden_at
             or row.image_deleted_at
+            or session.scalar(
+                select(RemovalRequest.id).where(RemovalRequest.submission_id == row.id).limit(1)
+            )
         ):
             raise HTTPException(404, "Image unavailable.")
         try:
@@ -204,6 +208,10 @@ def cancel(ident: uuid.UUID, request: Request):
     with transaction(request) as session:
         origin_check(request)
         user = get_user(session, request, True)
+        initial = submissions.own_submission(session, user, ident)
+        from app.db.models import Project
+
+        session.scalar(select(Project).where(Project.id == initial.project_id).with_for_update())
         row = submissions.own_submission(session, user, ident, True)
         if row.status != "uploading":
             raise HTTPException(409, "Completed submissions require a removal request.")
@@ -211,3 +219,136 @@ def cancel(ident: uuid.UUID, request: Request):
             row.abandoned_at = datetime.now(UTC)
         session.flush()
         return submissions.view(session, row)
+
+
+@router.patch(
+    "/submissions/{ident}/labels",
+    response_model=SubmissionView,
+    operation_id="editPersonalImageLabels",
+)
+def labels(ident: uuid.UUID, body: AnnotationRequest, request: Request):
+    enabled(request)
+    with transaction(request) as session:
+        origin_check(request)
+        return submissions.view(
+            session,
+            submissions.edit_annotation(session, get_user(session, request, True), ident, body),
+        )
+
+
+@router.get(
+    "/projects/{project_id}/owner-images",
+    response_model=SubmissionPage,
+    operation_id="listOwnerImages",
+)
+def owner_images(
+    project_id: uuid.UUID,
+    request: Request,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+    label: str | None = None,
+):
+    enabled(request)
+    from app.services.projects import owner_project
+
+    with transaction(request) as session:
+        user = get_user(session, request)
+        owner_project(session, user, project_id)
+        q = select(Submission).where(
+            Submission.project_id == project_id,
+            Submission.contributor_id == user.id,
+            Submission.workflow_version == 2,
+        )
+        if label:
+            q = q.where(Submission.label_key == label)
+        total = session.scalar(select(func.count()).select_from(q.subquery()))
+        rows = session.scalars(
+            q.order_by(Submission.created_at.desc(), Submission.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        ).all()
+        return SubmissionPage(
+            items=[submissions.view(session, row) for row in rows],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
+
+
+@router.get("/projects/{project_id}/private-export", operation_id="downloadPrivateCollection")
+async def private_export(project_id: uuid.UUID, request: Request):
+    from fastapi.responses import StreamingResponse
+    from starlette.background import BackgroundTask
+
+    from app.services import personal_exports
+
+    enabled(request)
+    gate = request.app.state.download_gate
+    try:
+        await asyncio.wait_for(gate.acquire(), 1)
+    except TimeoutError:
+        raise HTTPException(429, "Download service busy.") from None
+
+    def build():
+        with transaction(request) as session:
+            user = get_user(session, request)
+            allowed = throttle(session, f"private-export:{user.id}", 10)
+        if not allowed:
+            raise AuthError("Private export rate limit reached. Try again later.", 429)
+        with transaction(request) as session:
+            user = get_user(session, request)
+            return personal_exports.generate(session, user, project_id, request.app.state.settings)
+
+    try:
+        stream, size, signatures = await run_in_threadpool(build)
+    except BaseException:
+        gate.release()
+        raise
+    closed = False
+
+    def close():
+        nonlocal closed
+        if not closed:
+            closed = True
+            stream.close()
+            gate.release()
+
+    def valid():
+        with transaction(request) as session:
+            user = get_user(session, request)
+            return all(
+                session.scalar(
+                    select(Submission.id).where(
+                        Submission.id == uuid.UUID(ident),
+                        Submission.contributor_id == user.id,
+                        Submission.project_id == project_id,
+                        Submission.annotation_version == version,
+                        Submission.hidden_at.is_(None),
+                        Submission.image_deleted_at.is_(None),
+                        ~exists().where(RemovalRequest.submission_id == Submission.id),
+                    )
+                )
+                for ident, version in signatures.items()
+            )
+
+    async def chunks():
+        try:
+            while await run_in_threadpool(valid):
+                data = await run_in_threadpool(stream.read, 256 * 1024)
+                if not data:
+                    return
+                yield data
+        finally:
+            close()
+
+    return StreamingResponse(
+        chunks(),
+        background=BackgroundTask(close),
+        media_type="application/zip",
+        headers={
+            "Content-Length": str(size),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Disposition": f'attachment; filename="qpqdata-private-{project_id}.zip"',
+        },
+    )

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "../../../../lib/session";
 import { projectApi } from "../../../../lib/project-server";
-import Contributor from "../../../components/contributor";
+import QuickCapture from "../../../components/quick-capture";
 export default async function Contribute({
   params,
 }: {
@@ -20,11 +20,11 @@ export default async function Contribute({
   const error =
     process.env.QPQ_UPLOADS_ENABLED !== "true"
       ? "Image contributions are not enabled in this environment."
-      : p.owner_id === user.id
-        ? "You cannot contribute to your own collection."
-        : p.status !== "published" || p.closing_date_passed
-          ? "This collection is not accepting images."
-          : null;
+      : (p.status !== "published" &&
+            !(p.owner_id === user.id && p.status === "paused")) ||
+          p.closing_date_passed
+        ? "This collection is not accepting images."
+        : null;
   if (error)
     return (
       <main id="main" className="project-shell">
@@ -35,5 +35,5 @@ export default async function Contribute({
         </Link>
       </main>
     );
-  return <Contributor project={p} />;
+  return <QuickCapture key={p.id} project={p} owner={p.owner_id === user.id} />;
 }

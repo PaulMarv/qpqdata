@@ -1,3 +1,51 @@
+# Model organisation refactor — 1 November 2026
+
+Split `backend/app/db/models.py` into seven domain modules plus a shared base and explicit package exports. Largest mapping module: 114 lines. Existing `app.db.models` imports remain compatible.
+
+- Exact before/after AST comparison passed for all 27 class definitions (25 mapped classes, Base and Record). PostgreSQL table and index DDL matched exactly for all 25 tables.
+- Full backend suite against fresh disposable PostgreSQL database `qpqdata_phase1_test_5aad55585d`: **124 passed**, five existing deprecation warnings, no skips (9.19 seconds). Includes migrations, ledger constraints, authentication, submissions, exports and concurrency regressions.
+- Ruff lint passed; all **85 Python files** under app/tests/migrations passed formatting. Diff whitespace check passed.
+- Backend and worker images rebuilt successfully with frozen dependencies; Compose start/wait passed with all seven long-running services healthy and migration/fixture services exiting 0. Running backend reports **0009 (head)** and **No new upgrade operations detected**. Backend readiness and frontend health returned HTTP 200.
+- No new migration, business-rule changes or volume reset. Existing database and image volumes retained. Frontend code was unchanged by this refactor, so frontend tests and its production build were not repeated for this change.
+
+---
+
+# Final MVP enhancement verification — 1 November 2026
+
+Implemented Personal collections, zero-QC owner images and shared rapid capture/one-tap labelling; stopped for review before Phase 3. See [implementation, policy choices and complete manual steps](final-mvp-enhancement.md).
+
+| Check | Actual executed result |
+| --- | --- |
+| Prerequisite Phase 2E | Before application changes: **124 backend/PostgreSQL** and **67 frontend tests** passed. Completed the previously missing running-stack two-account HTTP flow through Next.js: Mailpit authentication, image uploads/approval, separate publication/consent/authorisation, real worker ZIP, guest download, ZIP/manifest/image hashes, versions 1–3, unchanged earlier version, withdrawal revocation, private source retained and wallets unchanged by downloads. |
+| Final backend suite | **124 passed**, no skipped tests; final disposable PostgreSQL target `qpqdata_phase1_test_1abd1062a0`. The existing aggregate PostgreSQL test now includes the owner/personal scenarios, so the top-level test count is unchanged despite added integration coverage. Five existing Starlette/httpx and Alembic configuration deprecation warnings remain. |
+| PostgreSQL owner/personal scenarios | Zero-available-QC personal creation and 21 sequential owner captures (without the community 20-image limit); private defaults and cross-user/guest denial; public personal collections still reject community capture; no personal credit entries/reservations; owner status/reward provenance; duplicate/retried images and concurrent same-key initiation; immutable label history and stale edit rejection; publicly authorised label-edit restriction; private ZIP contents/resource bounds; public owner export; forbidden owner payout; storage failure rollback/recovery; owner/community final-slot race; concurrent paused owner completion/community approval; removed-owner slot reuse while protecting community commitments; closure versus completion; exact refund/reward accounting; raw removal restriction interrupts private streaming and subsequent access. |
+| Existing regressions | Authentication/eligibility/welcome grant, append-only ledger, community reservations/approval concurrency, original image validation/metadata stripping, secure object access, publication consent, free download/immutable versions and removal cases remain passing. |
+| Frontend | **79 passed across 10 files** (12 new rapid-capture/personal UI tests). ESLint, strict TypeScript and Prettier passed. Tests cover mode selection, private setup, independent one-tap values, collapsed optional fields, required labels/attestation, same-slot retry, community pending outcome, denied camera, camera cleanup, Save & Capture Next retaining the live stream without a second permission request, unsupported file rejection and optimistic personal label edits. |
+| Lint/build | Ruff lint passed; **78 Python files** passed formatting; `git diff --check` passed. Frozen-dependency production images built successfully. Final Compose build/start/wait passed after the last removal-access and zero-QC display corrections. |
+| Migration | Normal additive revision **0009** applied; running backend reports **0009 (head)** and **No new upgrade operations detected**. ORM comparison passed in PostgreSQL. Revisions 0001–0008 were not rewritten. No database reset, downgrade, volume deletion, balance override or user-data reset was performed; the existing organisation fixture remains idempotent. |
+| Services/connectivity | All seven long-running services healthy; migrate and development-organisation fixture services exited 0. API readiness and frontend health returned HTTP 200. Authenticated personal gallery/capture and public dataset pages rendered through the running frontend. |
+| Live enhancement HTTP flow | Two fresh synthetic accounts: personal capture saved two approved owner images, relabelled one, produced a valid private ZIP with private answers and denied guest/other-account access. Explicitly authorised public personal export included owner provenance, excluded private text and still denied community capture. Crowdsourced target 2 reserved 2 QC; one owner image earned/spent 0 QC, one community image paid 1 QC while paused, a third slot was denied, and closure refunded the unused 1 QC. Final available balances **owner 49 / contributor 51**, owner reserved **0**. Mixed public ZIP recorded both provenance types and changed neither wallet. |
+| Final deployed-image recheck | Reauthenticated the **same** synthetic owner (no fresh welcome award), downloaded a valid two-image private ZIP, rendered the setup/gallery/capture pages, and confirmed the entire ledger was byte-for-byte unchanged by login/download checks. Guest private export was denied and the personal project stayed non-public. |
+| Old export compatibility | Prepared the pre-enhancement Phase 2E version 3 after migration and downloaded it through the running frontend: regenerated archive SHA-256 exactly matches its recorded immutable checksum. |
+| Preservation | Immediately after migration: **121 original ID-bearing rows** retained all captured original column fingerprints (session last-seen excluded); new columns were not substituted for old values. After live tests: original non-cache business fingerprints remain unchanged and original cache rows remain; mutable export-cache state/files intentionally changed during expiry/regeneration. Non-ID throttle buckets are operational, not part of that row count. All **4 original source image objects** retain identical SHA-256 hashes. Existing volumes and prior backups retained. |
+| Backup | Git-ignored, mode-0600 `pre-0009-mvp.dump`; SHA-256 `d00860d53e8cebb860d144828a5105872bf8ce29b1caff6d4db332409dad0210`. PostgreSQL archive catalog readable. No restore drill was performed. |
+
+## Resumption after interruption — 1 November 2026
+
+The final audit was interrupted after implementation, tests and deployment had passed. On resumption Docker was stopped, so the first connectivity/preservation attempt failed with a missing Docker socket and refused PostgreSQL connection. Started Docker Desktop and the existing Compose services without rebuilding or changing volumes. The three background workers initially remained unhealthy; restarting those existing workers recovered their connections/heartbeats. Final check: all seven services healthy, API readiness and frontend health HTTP 200, revision 0009 with no schema drift, original row preservation passed and all four original source image SHA-256 hashes matched again. Ruff lint, formatting and diff checks also passed. No application or schema changes were needed during this resumption; the completed 124-backend/79-frontend regression results above remain the applicable full-suite runs.
+
+## Corrections and remaining acceptance
+
+Initial integration checks correctly failed on the old self-contribution rejection expectation, old readiness revision and stale API contract; updated fixtures/contracts for the explicitly authorised owner workflow and revision 0009. Owner images remain excluded from moderation rather than weakening its self-payout guard. New test-fixture syntax/type omissions and an optional-field selector were corrected. The full advanced builder test now expects the intentional optional default for new questions. Ruff/TypeScript/format checks were rerun successfully; no integrity guard was disabled to pass a test.
+
+Final review corrected project-before-image locking, owner-removal capacity accounting, raw removal restrictions in private access/streaming, and misleading community-reward text on personal surfaces. Those corrections were regression tested and deployed. The final production build includes them.
+
+**Manual checks still required:** physical iOS/Android camera and picker behaviour, sustained Save & Capture Next, portrait/landscape layout, keyboard/focus and screen-reader acceptance against the Figma frames, mobile background interruptions and natural upload/cache expiry. No connected browser was available for visual inspection. Live HTTP smoke tests do not claim physical camera or rendered-browser visual acceptance. Resource-limit branches were exercised synthetically; no full 128-MiB private/512-MiB public export load benchmark or production deployment was performed.
+
+Policy points for review: crowdsourced surplus remains held until closure; publication/consent withdrawals remain terminal; publicly authorised personal labels require withdrawal before editing. Default Compose networking remains loopback-only and local storage remains development-gated. No cohorts, expanded notifications, offline synchronisation, payments, credit purchases or Phase 3 work was added.
+
+---
+
 # Navigation and Explore UI follow-up — 31 October 2026
 
 - Guest Log in/Sign up links now share centred alignment, spacing and 44px minimum touch targets with the header navigation.

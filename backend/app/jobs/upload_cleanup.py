@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.db.models import ModerationDecision, RemovalRequest, Submission
+from app.db.models import ModerationDecision, Project, RemovalRequest, Submission
 from app.integrations.storage import LocalObjectStore
 
 
@@ -18,16 +18,23 @@ def cleanup(engine, root: str) -> tuple[int, int]:
     removed = 0
     with Session(engine) as session, session.begin():
         rows = session.scalars(
-            select(Submission)
-            .where(
-                Submission.workflow_version == 1,
+            select(Submission).where(
+                Submission.workflow_version.in_([1, 2]),
                 Submission.status == "uploading",
                 Submission.abandoned_at.is_(None),
                 Submission.upload_expires_at < now,
             )
-            .with_for_update(skip_locked=True)
         ).all()
         for row in rows:
+            if not session.scalar(
+                select(Project.id)
+                .where(Project.id == row.project_id)
+                .with_for_update(skip_locked=True)
+            ):
+                continue
+            session.refresh(row, with_for_update=True)
+            if row.status != "uploading" or row.abandoned_at or row.upload_expires_at >= now:
+                continue
             row.abandoned_at = now
             expired += 1
     store = LocalObjectStore(root)
@@ -38,7 +45,7 @@ def cleanup(engine, root: str) -> tuple[int, int]:
             select(Submission)
             .outerjoin(ModerationDecision, ModerationDecision.submission_id == Submission.id)
             .where(
-                Submission.workflow_version == 1,
+                Submission.workflow_version.in_([1, 2]),
                 Submission.image_deleted_at.is_(None),
                 Submission.status.in_(["pending", "approved", "rejected"]),
                 or_(
@@ -52,9 +59,17 @@ def cleanup(engine, root: str) -> tuple[int, int]:
                     & (ModerationDecision.created_at < now - timedelta(days=30)),
                 ),
             )
-            .with_for_update(of=Submission, skip_locked=True)
         ).all()
         for row in purge:
+            if not session.scalar(
+                select(Project.id)
+                .where(Project.id == row.project_id)
+                .with_for_update(skip_locked=True)
+            ):
+                continue
+            session.refresh(row, with_for_update=True)
+            if row.image_deleted_at:
+                continue
             store.delete(row.object_key)
             row.image_deleted_at = now
             removed += 1

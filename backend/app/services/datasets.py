@@ -207,7 +207,7 @@ def review(session: Session, user: User, ident: uuid.UUID) -> list[ExportReview]
         select(Submission)
         .where(
             Submission.project_id == pub.project_id,
-            Submission.workflow_version == 1,
+            Submission.workflow_version.in_([1, 2]),
             Submission.status == "approved",
         )
         .order_by(Submission.id)
@@ -272,7 +272,7 @@ def eligible_query(pub: DatasetPublication):
         .where(
             Submission.project_id == pub.project_id,
             Submission.criteria_version == pub.criteria_version,
-            Submission.workflow_version == 1,
+            Submission.workflow_version.in_([1, 2]),
             Submission.status == "approved",
             Submission.hidden_at.is_(None),
             Submission.image_deleted_at.is_(None),
@@ -316,6 +316,9 @@ def snapshot(session: Session, pub: DatasetPublication) -> DatasetVersion:
         validate_answers(d, row.label_key, row.metadata_values)
         items.append(
             {
+                "source": "owner-provided"
+                if row.workflow_version == 2
+                else "community-contributed",
                 "submission": str(row.id),
                 "consent": str(grant.id),
                 "label": row.label_key,
@@ -331,7 +334,7 @@ def snapshot(session: Session, pub: DatasetPublication) -> DatasetVersion:
     fingerprint = hashlib.sha256(
         json.dumps(
             {
-                "format": 1,
+                "format": 2,
                 "encoder": pillow_version,
                 "images": items,
                 "licence_sha256": hashlib.sha256(
@@ -369,6 +372,7 @@ def snapshot(session: Session, pub: DatasetPublication) -> DatasetVersion:
                 consent_id=uuid.UUID(data["consent"]),
                 image_id=uuid.uuid5(pub.id, data["submission"]),
                 annotations={
+                    "source": data["source"],
                     "label": data["label"],
                     "answers": data["answers"],
                     "attribution": data["attribution"],
